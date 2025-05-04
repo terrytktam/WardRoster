@@ -188,7 +188,6 @@ function WEEKDAYS: weekday(DAYS: day) =
 output ["Whole calendar: "] ++ [show(i) ++ " " | i in DAYS] ++ ["\n"];
 output ["Whole calendar: "] ++ [show(DAY_WEEKDAYS)] ++ ["\n"];
 output ["Available weekends: "] ++ [show(weekends)] ++ ["\n"];
-output ["Duty generation period with last N: ("] ++ [show(C(mthStartAt)) ++ "," ++ show(X(nNextMthDays))] ++ [")\n"];
 output ["Available APNs: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[APN]] ++ ["\n"];
 output ["Available RN1s: "] ++ [show(RN1(i)) ++ "\t" | i in 1..nRN1] ++ ["\n"];
 output ["Available RN2s: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[RN2]] ++ ["\n"];
@@ -201,6 +200,10 @@ output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\
 output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
 
 % Result printing
+output[if i == 1 then "\t" else "" endif ++ if i in {C(1),X(1)} then "1" 
+                                            elseif i == C(mthStartAt) then show(mthStartAt)
+                                            elseif i == X(nNextMthDays) then show(nNextMthDays)
+                                            else " " endif ++ " " ++ if i == X(nNextMthDays) then "\n" else "" endif | i in DAYS];
 output[if i == 1 then "\t" else "" endif ++ if i in weekends then "S" else " " endif ++ " " ++ if i == X(nNextMthDays) then "\n" else "" endif | i in DAYS];
 output[if j == 1 then show(i) ++ "\t" else "" endif ++ show(roster[i,j]) ++ " " ++ if j == X(nNextMthDays) then "\n" else "" endif | i in STAFFS, j in DAYS];
 output["# of PAs= " ++ show(score1) ++ "\n"];
