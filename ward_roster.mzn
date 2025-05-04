@@ -5,7 +5,7 @@ enum WEEKDAYS = {Mon, Tue, Wed, Thu, Fri, Sat, Sun};
 enum DUTIES = {N, A, P, O};
 enum GRADES = {APN, RN1, RN2, RN3};
 enum RULES = {MandatoryDuty,          % request duty constraint
-              OffEntitlement,         % # of O entitled per month constraint (infeasible based on no O borrowing)
+              FiveDayWorkingOff,      % 5-day working O entitlement constraint
               WeekendOff,             % # of weekend O constraint
               NoWeekendPP,            % no weekend PP constraint (mandatory)
               MinWardStaffReq,        % daily ward requirement constraint (mandatory)
@@ -19,7 +19,7 @@ enum MAXS = { grade, night, am, pm, off };
 
 % Parameters
 int: CCYYMM;      % current month
-int: nDays;        % number of days in the month
+int: nDays;       % number of days in the month
 int: MW;          % maximum number of consecutive shifts
 int: CN;          % number of consecutive days with at most 1 N
 int: nAPN;        % number of APNs
@@ -75,6 +75,7 @@ constraint forall(i in DAYS) (
 );
 
 % Rule feature toggle constraints
+constraint active_constraints[FiveDayWorkingOff] -> rules2();
 constraint active_constraints[WeekendOff] -> rules3();
 constraint active_constraints[NoWeekendPP] -> rules4();
 constraint active_constraints[MinWardStaffReq] -> rules5();
@@ -83,8 +84,12 @@ constraint active_constraints[NormalNightFrequency] -> rules7();
 constraint active_constraints[Consecutive3Duties] -> rules8();
 constraint active_constraints[NormalOffFrequency] -> rules9();
 
-% Rule 3: constraint of >=2 weekend Os for every nurse in a month
+% Rule 2: constraint of # of 5-day working O for every nurse in a month
 int: min_weekend_O = round(nDays div 15);
+predicate rules2 = (forall(i in STAFFS) (
+    global_cardinality(row(roster,i), OFF, [min_weekend_O], [nWeekends])));    % how to deal with public holidays/extra O 
+
+% Rule 3: constraint of >=2 weekend Os for every nurse in a month
 predicate rules3 = (forall(i in STAFFS) (
     global_cardinality([roster[i,j] | j in weekends], OFF, [min_weekend_O], [nWeekends])
 ));

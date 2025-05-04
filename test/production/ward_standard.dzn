@@ -10,7 +10,7 @@ min_ward = [| N, 6, 0, 2, 1, 1      % min # of total, APNs, RN1s, RN2s, RN3s at 
 
 active_constraints = [
   false, % request duty constraint
-  false, % # of O entitled per month constraint (infeasible based on no O borrowing)
+  true, % 5-day working O entitlement constraint
   true, % # of weekend O constraint
   true, % no weekend PP constraint (mandatory)
   true,  % daily ward requirement constraint (mandatory)
