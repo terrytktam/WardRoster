@@ -58,7 +58,7 @@ array[int] of int: colmajor_1d = set2array(GRADES) ++
                                 [nGrades[i] - sum(col(MIN_WARD, j)) | i in GRADES, j in MINS where (i, j) in GRADE_MINS] ++ 
                                 [nGrades[i] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where j != l /\ (i, m) in GRADE_MINS]) 
                                 | i in GRADES, j in SHIFTS, k in MAXS where (j, k) in DUTIES_MAXS];
-array[int] of int: transpose = [colmajor_1d[(j-1)*(nDuties+1) + i] | j in 1..card(GRADES), i in 1..(nDuties+1)];
+array[int] of int: transpose = [colmajor_1d[(i-1)*card(GRADES) + j] | j in 1..card(GRADES), i in 1..(nDuties+1)];
 array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
 
 % Decision Variables
@@ -80,7 +80,7 @@ constraint active_constraints[MinWardStaffReq] -> rules5();
 constraint active_constraints[NormalDutyStateDiagram] -> rules6();
 constraint active_constraints[NormalNightFrequency] -> rules7();
 constraint active_constraints[Consecutive3Duties] -> rules8();
-constraint active_constraints[Consecutive3Duties] -> rules9();
+constraint active_constraints[NormalOffFrequency] -> rules9();
 
 % Rule 3: constraint of >=2 weekend Os for every nurse in a month
 int: min_weekend_O = round(nDays div 15);
@@ -174,6 +174,8 @@ output ["Available RN2s: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[RN2]] ++ ["\
 output ["Available RN3s: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[RN3]] ++ ["\n"];
 output ["Index sets of MIN_WARD: "] ++ [show(index_set_1of2(MIN_WARD)) ++ "\t" ++ show(index_set_2of2(MIN_WARD))] ++ ["\n"];
 output ["Min staffs/APNs/RN1s/RN2s/RN3s in N/P/A: \n"] ++ [show2d(MIN_WARD)] ++ ["\n"];
+output ["colmajor_1d: "] ++ [show(colmajor_1d)] ++ ["\n"];
+output ["transpose  : "] ++ [show(transpose)] ++ ["\n"];
 output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\t" ++ show(index_set_2of2(GRADE_MAXS))] ++ ["\n"];
 output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
 
