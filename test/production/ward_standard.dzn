@@ -5,8 +5,9 @@ nRN3 = 8;
 MW = 7;
 CN = 6;
 min_ward = [| N, 6, 0, 2, 1, 1      % min # of total, APNs, RN1s, RN2s, RN3s at N
-            | P, 9, 1, 4, 2, 2      % min # of total, APNs, RN1s, RN2s, RN3s at P
-            | A, 10, 1, 4, 2, 2|];  % min # of total, APNs, RN1s, RN2s, RN3s at A
+            | A, 10, 1, 4, 2, 2     % min # of total, APNs, RN1s, RN2s, RN3s at A
+            | P, 9, 1, 4, 2, 2|];   % min # of total, APNs, RN1s, RN2s, RN3s at P
+
 active_constraints = [
   false, % request duty constraint
   false, % # of O entitled per month constraint (infeasible based on no O borrowing)

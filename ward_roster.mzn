@@ -2,7 +2,7 @@ include "globals.mzn";
 
 % Constants
 enum WEEKDAYS = {Mon, Tue, Wed, Thu, Fri, Sat, Sun};
-enum DUTIES = {O, N, P, A};
+enum DUTIES = {N, A, P, O};
 enum GRADES = {APN, RN1, RN2, RN3};
 enum RULES = {MandatoryDuty,          % request duty constraint
               OffEntitlement,         % # of O entitled per month constraint (infeasible based on no O borrowing)
@@ -15,7 +15,7 @@ enum RULES = {MandatoryDuty,          % request duty constraint
               NormalOffFrequency,     % at least 1 O for NW days constraint (mandatory)
               };
 enum MINS = { shift, total, apn, rn1, rn2, rn3 };
-enum MAXS = { grade, off, night, pm, am };
+enum MAXS = { grade, night, am, pm, off };
 
 % Parameters
 int: CCYYMM;      % current month
@@ -39,12 +39,13 @@ enum STAFFS = APN(1..nAPN) ++ RN1(1..nRN1) ++ RN2(1..nRN2) ++ RN3(1..nRN3);
 int: nStaffs = card(STAFFS);
 int: nWeekends = card(weekends);
 int: nDuties = card(DUTIES);
-array[GRADES] of int: nGrades = [nAPN, nRN1, nRN2, nRN3];
+int: nGrades = card(GRADES);
+array[GRADES] of int: nGradeStaffs = [nAPN, nRN1, nRN2, nRN3];
 array[GRADES] of GradeMins: GRADE_MINS = [(APN, apn), (RN1, rn1), (RN2, rn2), (RN3, rn3)];
-array[DUTIES] of DutiesMaxs: DUTIES_MAXS = [(O, off), (N, night), (P, pm), (A, am)];
-set of MAXS: SHIFT_MAXS = {night, pm, am};
+array[DUTIES] of DutiesMaxs: DUTIES_MAXS = [(N, night), (A, am), (P, pm), (O, off)];
+set of MAXS: SHIFT_MAXS = {night, am, pm};
 set of DAYS: WEEKEND = {Sat, Sun};
-set of DUTIES: SHIFTS = {N, P, A};
+set of DUTIES: SHIFTS = {N, A, P};
 set of DUTIES: OFF = {O};
 set of int: DAYS = 1..nDays;
 set of DAYS: weekends = {i | i in DAYS where to_enum(WEEKDAYS, if ((i + MONTH_START - 1) mod 7 == 0) then 7 
@@ -55,10 +56,10 @@ array[GRADES] of set of STAFFS: GRADE_STAFFS = [array2set([APN(i) | i in 1..nAPN
                                                array2set([RN2(i) | i in 1..nRN2]),
                                                array2set([RN3(i) | i in 1..nRN3])];
 array[int] of int: colmajor_1d = set2array(GRADES) ++ 
-                                [nGrades[i] - sum(col(MIN_WARD, j)) | i in GRADES, j in MINS where (i, j) in GRADE_MINS] ++ 
-                                [nGrades[i] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where j != l /\ (i, m) in GRADE_MINS]) 
-                                | i in GRADES, j in SHIFTS, k in MAXS where (j, k) in DUTIES_MAXS];
-array[int] of int: transpose = [colmajor_1d[(i-1)*card(GRADES) + j] | j in 1..card(GRADES), i in 1..(nDuties+1)];
+                                [nGradeStaffs[i] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where j != l /\ (i, m) in GRADE_MINS]) 
+                                | i in GRADES, j in SHIFTS, k in MAXS where (j, k) in DUTIES_MAXS] ++
+                                [nGradeStaffs[i] - sum(col(MIN_WARD, j)) | i in GRADES, j in MINS where (i, j) in GRADE_MINS];
+array[int] of int: transpose = [colmajor_1d[(i-1) * nGrades + j] | j in 1..nGrades, i in 1..card(MAXS)];
 array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
 
 % Decision Variables
@@ -95,19 +96,15 @@ predicate rules4 = (forall(i in STAFFS) (
     )
 ));
 
-% Rule 5: constraint of min # of nurses of all types in every A/P/N duties
+% Rule 5: constraint of min # of nurses of all types in every N/A/P duties
 predicate ward_req(array[STAFFS] of var DUTIES: a) = (
-    let {
-        array[SHIFTS] of int: b = array1d(SHIFTS, set2array(SHIFTS)),   % can move to constants
-        array[SHIFTS] of int: c = array1d(SHIFTS, [nStaffs | _ in SHIFTS])    % can move to constants
-    } in 
-    global_cardinality(a, b, col(MIN_WARD,total), c) /\  % upper bound can be more tightened
+    global_cardinality(a, SHIFTS, col(MIN_WARD,total), [nStaffs | _ in SHIFTS]) /\  % upper bound can be more tightened
     forall(i in GRADES, j in MINS where (i, j) in GRADE_MINS) (
         let {
             array[SHIFTS] of int: d = array1d(SHIFTS, [col(MIN_WARD,j)[k] | k in SHIFTS]),
             array[SHIFTS] of int: e = array1d(SHIFTS, [row(GRADE_MAXS,i)[k] | k in SHIFT_MAXS])
         } in 
-        global_cardinality(a[GRADE_STAFFS[i]], b, d, e))
+        global_cardinality(a[GRADE_STAFFS[i]], SHIFTS, d, e))
 );
 predicate rules5 = (forall(i in DAYS) (
     ward_req(col(roster,i))
@@ -118,13 +115,13 @@ int: Q1 = 7;
 int: q0 = 1;
 set of int: STATE1 = 1..Q1;
 array[STATE1, DUTIES] of int: t1 = 
-  [| 2, 5, 4, 3      % state 1 (allow N at the 1st day)
-   | 2, 0, 4, 3      % state 2
-   | 2, 5, 2, 2      % state 3 (only A can enter this stage)
-   | 2, 0, 2, 2      % state 4 (cannot have N)
-   | 2, 0, 6, 0      % state 5 (if not O, can only P)
-   | 2, 0, 7, 7      % state 6 (if not O, can only have A/P)
-   | 2, 0, 0, 0 |];  % state 7 (can only have O)
+  [| 5, 3, 4, 2      % state 1 (allow N at the 1st day)
+   | 0, 3, 4, 2      % state 2
+   | 5, 2, 2, 2      % state 3 (only A can enter this stage)
+   | 0, 2, 2, 2      % state 4 (cannot have N)
+   | 0, 0, 6, 2      % state 5 (if not O, can only P)
+   | 0, 7, 7, 2      % state 6 (if not O, can only have A/P)
+   | 0, 0, 0, 2 |];  % state 7 (can only have O)
 predicate rules6 = (forall(i in STAFFS) (          % how to exclude long night?
     regular(row(roster,i), Q1, nDuties, t1, q0, STATE1)
 ));
@@ -132,9 +129,9 @@ predicate rules6 = (forall(i in STAFFS) (          % how to exclude long night?
 % Rule 7: constraint of at most one N in consecutive CN days (w/o long night)
 int: Q2 = CN;
 set of int: STATE2 = 1..Q2;
-array[STATE2, DUTIES] of int: t2 = array2d(STATE2, DUTIES, [q0,2,q0,q0]++
+array[STATE2, DUTIES] of int: t2 = array2d(STATE2, DUTIES, [2,q0,q0,q0]++
                                                            [if j == N then 0 else i endif | i in 3..CN, j in DUTIES] ++
-                                                           [q0,0,q0,q0]);
+                                                           [0,q0,q0,q0]);
 predicate rules7 = (forall(i in STAFFS) (          % how to exclude long night?
     regular(row(roster,i), Q2, nDuties, t2, q0, STATE2)
 ));
@@ -143,12 +140,12 @@ predicate rules7 = (forall(i in STAFFS) (          % how to exclude long night?
 int: Q3 = 6;
 set of int: STATE3 = 1..Q3;
 array[STATE3, DUTIES] of int: t3 = 
-  [| 1, 1, 3, 2      % state 1
-   | 1, 1, 3, 4      % state 2
-   | 6, 1, 5, 2      % state 3 
-   | 1, 1, 3, 0      % state 4 (cannot A again)
-   | 1, 1, 0, 2      % state 5 (cannot P again)
-   | 1, 1, 3, 0 |];  % state 6 (cannot A)
+  [| 1, 2, 3, 1      % state 1
+   | 1, 4, 3, 1      % state 2
+   | 1, 2, 5, 6      % state 3 
+   | 1, 0, 3, 1      % state 4 (cannot A again)
+   | 1, 2, 0, 1      % state 5 (cannot P again)
+   | 1, 0, 3, 1 |];  % state 6 (cannot A)
 predicate rules8 = (forall(i in STAFFS) (
     regular(row(roster,i), Q3, nDuties, t3, q0, STATE3)
 ));
@@ -157,7 +154,7 @@ predicate rules8 = (forall(i in STAFFS) (
 int: Q4 = MW;
 set of int: STATE4 = 1..Q4;
 array[STATE4,DUTIES] of int: t4 = array2d(STATE4, DUTIES, [if j == O then q0 else i endif | i in 2..MW, j in DUTIES] ++
-                                                          [q0,0,0,0]);
+                                                          [0,0,0,q0]);
 predicate rules9 = (forall(i in STAFFS) (
     regular(row(roster,i), Q4, nDuties, t4, q0, STATE4)
 ));
@@ -173,7 +170,7 @@ output ["Available RN1s: "] ++ [show(RN1(i)) ++ "\t" | i in 1..nRN1] ++ ["\n"];
 output ["Available RN2s: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[RN2]] ++ ["\n"];
 output ["Available RN3s: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[RN3]] ++ ["\n"];
 output ["Index sets of MIN_WARD: "] ++ [show(index_set_1of2(MIN_WARD)) ++ "\t" ++ show(index_set_2of2(MIN_WARD))] ++ ["\n"];
-output ["Min staffs/APNs/RN1s/RN2s/RN3s in N/P/A: \n"] ++ [show2d(MIN_WARD)] ++ ["\n"];
+output ["Min staffs/APNs/RN1s/RN2s/RN3s in N/A/P: \n"] ++ [show2d(MIN_WARD)] ++ ["\n"];
 output ["colmajor_1d: "] ++ [show(colmajor_1d)] ++ ["\n"];
 output ["transpose  : "] ++ [show(transpose)] ++ ["\n"];
 output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\t" ++ show(index_set_2of2(GRADE_MAXS))] ++ ["\n"];
