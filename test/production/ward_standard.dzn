@@ -1,0 +1,20 @@
+nAPN = 6;
+nRN1 = 15;
+nRN2 = 12;
+nRN3 = 8;
+MW = 7;
+CN = 6;
+min_ward = [| N, 6, 0, 2, 1, 1      % min # of total, APNs, RN1s, RN2s, RN3s at N
+            | P, 9, 1, 4, 2, 2      % min # of total, APNs, RN1s, RN2s, RN3s at P
+            | A, 10, 1, 4, 2, 2|];  % min # of total, APNs, RN1s, RN2s, RN3s at A
+active_constraints = [
+  false, % request duty constraint
+  false, % # of O entitled per month constraint (infeasible based on no O borrowing)
+  true, % # of weekend O constraint
+  true, % no weekend PP constraint (mandatory)
+  true,  % daily ward requirement constraint (mandatory)
+  true, % normal AN constraint
+  true, % at most 1 N for CN days constraint (mandatory)
+  true, % no triple-A/P and POA constraint (mandatory)
+  false  % at least 1 O for NW days constraint (mandatory)
+];
