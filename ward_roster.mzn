@@ -43,12 +43,12 @@ array[GRADES] of int: nGrades = [nAPN, nRN1, nRN2, nRN3];
 array[GRADES] of GradeMins: GRADE_MINS = [(APN, apn), (RN1, rn1), (RN2, rn2), (RN3, rn3)];
 array[DUTIES] of DutiesMaxs: DUTIES_MAXS = [(O, off), (N, night), (P, pm), (A, am)];
 set of MAXS: SHIFT_MAXS = {night, pm, am};
-set of DAYS: nWeekends = {Sat, Sun};
+set of DAYS: WEEKEND = {Sat, Sun};
 set of DUTIES: SHIFTS = {N, P, A};
 set of DUTIES: OFF = {O};
 set of int: DAYS = 1..nDays;
 set of DAYS: weekends = {i | i in DAYS where to_enum(WEEKDAYS, if ((i + MONTH_START - 1) mod 7 == 0) then 7 
-                                     else (i + MONTH_START - 1) mod 7 endif) in WEEKDAYS};
+                                     else (i + MONTH_START - 1) mod 7 endif) in WEEKEND};
 array[SHIFTS, MINS] of int: MIN_WARD = array2d(SHIFTS, MINS, min_ward);
 array[GRADES] of set of STAFFS: GRADE_STAFFS = [array2set([APN(i) | i in 1..nAPN]),
                                                array2set([RN1(i) | i in 1..nRN1]),
@@ -80,6 +80,7 @@ constraint active_constraints[MinWardStaffReq] -> rules5();
 constraint active_constraints[NormalDutyStateDiagram] -> rules6();
 constraint active_constraints[NormalNightFrequency] -> rules7();
 constraint active_constraints[Consecutive3Duties] -> rules8();
+constraint active_constraints[Consecutive3Duties] -> rules9();
 
 % Rule 3: constraint of >=2 weekend Os for every nurse in a month
 int: min_weekend_O = round(nDays div 15);
@@ -150,6 +151,15 @@ array[STATE3, DUTIES] of int: t3 =
    | 1, 1, 3, 0 |];  % state 6 (cannot A)
 predicate rules8 = (forall(i in STAFFS) (
     regular(row(roster,i), Q3, nDuties, t3, q0, STATE3)
+));
+
+% Rule 9: constraint of at least 1 O for every nurse in every consecutive MW days
+int: Q4 = MW;
+set of int: STATE4 = 1..Q4;
+array[STATE4,DUTIES] of int: t4 = array2d(STATE4, DUTIES, [if j == O then q0 else i endif | i in 2..MW, j in DUTIES] ++
+                                                          [q0,0,0,0]);
+predicate rules9 = (forall(i in STAFFS) (
+    regular(row(roster,i), Q4, nDuties, t4, q0, STATE4)
 ));
 
 % Objective functions

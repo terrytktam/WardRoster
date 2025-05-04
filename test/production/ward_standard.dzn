@@ -16,5 +16,5 @@ active_constraints = [
   true, % normal AN constraint
   true, % at most 1 N for CN days constraint (mandatory)
   true, % no triple-A/P and POA constraint (mandatory)
-  false  % at least 1 O for NW days constraint (mandatory)
+  true  % at least 1 O for NW days constraint (mandatory)
 ];
