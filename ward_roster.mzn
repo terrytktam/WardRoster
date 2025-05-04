@@ -19,7 +19,7 @@ enum MAXS = { grade, night, am, pm, off };
 
 % Parameters
 int: CCYYMM;      % current month
-int: nDays;       % number of days in the month
+int: nMthDays;    % number of days in the month
 int: MW;          % maximum number of consecutive shifts
 int: CN;          % number of consecutive days with at most 1 N
 int: nAPN;        % number of APNs
@@ -44,12 +44,20 @@ array[GRADES] of int: nGradeStaffs = [nAPN, nRN1, nRN2, nRN3];
 array[GRADES] of GradeMins: GRADE_MINS = [(APN, apn), (RN1, rn1), (RN2, rn2), (RN3, rn3)];
 array[DUTIES] of DutiesMaxs: DUTIES_MAXS = [(N, night), (A, am), (P, pm), (O, off)];
 set of MAXS: SHIFT_MAXS = {night, am, pm};
-set of DAYS: WEEKEND = {Sat, Sun};
+set of WEEKDAYS: WEEKEND = {Sat, Sun};
 set of DUTIES: SHIFTS = {N, A, P};
 set of DUTIES: OFF = {O};
-set of int: DAYS = 1..nDays;
-set of DAYS: weekends = {i | i in DAYS where to_enum(WEEKDAYS, if ((i + MONTH_START - 1) mod 7 == 0) then 7 
-                                     else (i + MONTH_START - 1) mod 7 endif) in WEEKEND};
+
+% Derived Parameters (for cross-month calendar generation)
+int: mthStartAt = (8-enum2int(MONTH_START)) mod 7 + 1;
+int: nPrevMthDays = max([MW,CN]) - mthStartAt + 1;
+int: nNextMthDays = (enum2int(Sun)-enum2int(MONTH_START)+35+1-nMthDays) mod 7 + 1;
+enum DAYS = V(1..nPrevMthDays) ++ C(1..nMthDays) ++ X(1..nNextMthDays);
+array[DAYS] of WEEKDAYS: DAY_WEEKDAYS = array1d(DAYS,[weekday(i) | i in DAYS]);
+set of DAYS: weekends = array2set([i | i in DAYS where DAY_WEEKDAYS[i] in WEEKEND]);
+int: nDays = card(DAYS);
+
+% Derived Parameters (for ward max manpower generation)
 array[SHIFTS, MINS] of int: MIN_WARD = array2d(SHIFTS, MINS, min_ward);
 array[GRADES] of set of STAFFS: GRADE_STAFFS = [array2set([APN(i) | i in 1..nAPN]),
                                                array2set([RN1(i) | i in 1..nRN1]),
@@ -85,9 +93,9 @@ constraint active_constraints[Consecutive3Duties] -> rules8();
 constraint active_constraints[NormalOffFrequency] -> rules9();
 
 % Rule 2: constraint of # of 5-day working O for every nurse in a month
-int: min_weekend_O = round(nDays div 15);
+int: min_weekend_O = round(card(DAYS) div 15);
 predicate rules2 = (forall(i in STAFFS) (
-    global_cardinality(row(roster,i), OFF, [min_weekend_O], [nWeekends])));    % how to deal with public holidays/extra O 
+    global_cardinality(row(roster,i), OFF, [min_weekend_O], [nWeekends])));    % how to deal with public holidays/extra O
 
 % Rule 3: constraint of >=2 weekend Os for every nurse in a month
 predicate rules3 = (forall(i in STAFFS) (
@@ -96,8 +104,8 @@ predicate rules3 = (forall(i in STAFFS) (
 
 % Rule 4: constraint of no both-P for the same weekend
 predicate rules4 = (forall(i in STAFFS) (
-    forall(j in weekends where (j+1) in weekends) (
-        roster[i,j] == P -> roster[i,j+1] != P
+    forall(j in weekends where enum_next(j) in weekends) (
+        roster[i,j] == P -> roster[i,enum_next(j)] != P
     )
 ));
 
@@ -165,11 +173,22 @@ predicate rules9 = (forall(i in STAFFS) (
 ));
 
 % Objective functions
-var int: score1 = sum([roster[i,j] == P /\ roster[i,j+1] == A | i in STAFFS, j in DAYS where j+1 in DAYS]);
+var int: score1 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == A | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);
 
 solve :: int_search(roster, first_fail, indomain_min) maximize score1;
 
+% Helper function
+function WEEKDAYS: weekday(DAYS: day) = 
+    let {
+        int: temp = (enum2int(day) - enum2int(C(1)) + enum2int(MONTH_START)) mod 7
+    } in
+    if (temp == 0) then Sun else to_enum(WEEKDAYS, temp) endif;
+
 % Verify data input and derived parameters
+output ["Whole calendar: "] ++ [show(i) ++ " " | i in DAYS] ++ ["\n"];
+output ["Whole calendar: "] ++ [show(DAY_WEEKDAYS)] ++ ["\n"];
+output ["Available weekends: "] ++ [show(weekends)] ++ ["\n"];
+output ["Duty generation period with last N: ("] ++ [show(C(mthStartAt)) ++ "," ++ show(X(nNextMthDays))] ++ [")\n"];
 output ["Available APNs: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[APN]] ++ ["\n"];
 output ["Available RN1s: "] ++ [show(RN1(i)) ++ "\t" | i in 1..nRN1] ++ ["\n"];
 output ["Available RN2s: "] ++ [show(i) ++ "\t" | i in GRADE_STAFFS[RN2]] ++ ["\n"];
@@ -182,6 +201,6 @@ output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\
 output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
 
 % Result printing
-output[if i == 1 then "\t" else "" endif ++ if i in weekends then "S" else " " endif ++ " " ++ if i == nDays then "\n" else "" endif | i in DAYS];
-output[if j == 1 then show(i) ++ "\t" else "" endif ++ show(roster[i,j]) ++ " " ++ if j == nDays then "\n" else "" endif | i in STAFFS, j in DAYS];
+output[if i == 1 then "\t" else "" endif ++ if i in weekends then "S" else " " endif ++ " " ++ if i == X(nNextMthDays) then "\n" else "" endif | i in DAYS];
+output[if j == 1 then show(i) ++ "\t" else "" endif ++ show(roster[i,j]) ++ " " ++ if j == X(nNextMthDays) then "\n" else "" endif | i in STAFFS, j in DAYS];
 output["# of PAs= " ++ show(score1) ++ "\n"];
