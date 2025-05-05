@@ -9,7 +9,7 @@ min_ward = [| N, 6, 0, 2, 1, 1      % min # of total, APNs, RN1s, RN2s, RN3s at 
             | P, 9, 1, 4, 2, 2|];   % min # of total, APNs, RN1s, RN2s, RN3s at P
 
 active_constraints = [
-  false, % request duty constraint
+  true, % ward request duty constraint
   true, % 5-day working O entitlement constraint
   true, % # of weekend O constraint
   true, % no weekend PP constraint (mandatory)

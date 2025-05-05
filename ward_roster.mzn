@@ -4,7 +4,7 @@ include "globals.mzn";
 enum WEEKDAYS = {Mon, Tue, Wed, Thu, Fri, Sat, Sun};
 enum DUTIES = {N, A, P, O};
 enum GRADES = {APN, RN1, RN2, RN3};
-enum RULES = {MandatoryDuty,          % request duty constraint
+enum RULES = {WardReqDuty,            % ward request duty constraint
               FiveDayWorkingOff,      % 5-day working O entitlement constraint
               WeekendOff,             % # of weekend O constraint
               NoWeekendPP,            % no weekend PP constraint (mandatory)
@@ -28,11 +28,16 @@ int: nRN2;        % number of RN2s
 int: nRN3;        % number of RN3s
 WEEKDAYS: MONTH_START;
 array[int, int] of int: min_ward;
+array[int, int] of int: req_duties;
+array[int, int] of int: ward_duties;
+array[int, int] of int: annual_leaves;
+array[int, int] of int: long_nights;
 array[RULES] of bool: active_constraints;
 
 % Tuples
 type GradeMins = tuple(GRADES, MINS);
 type DutiesMaxs = tuple(DUTIES, MAXS);
+type WardReqDuties = tuple(STAFFS, DAYS, DUTIES);
 
 % Derived Parameters
 enum STAFFS = APN(1..nAPN) ++ RN1(1..nRN1) ++ RN2(1..nRN2) ++ RN3(1..nRN3);
@@ -70,6 +75,10 @@ array[int] of int: colmajor_1d = set2array(GRADES) ++
 array[int] of int: transpose = [colmajor_1d[(i-1) * nGrades + j] | j in 1..nGrades, i in 1..card(MAXS)];
 array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
 
+array[int] of WardReqDuties: REQ_DUTIES = [(to_enum(STAFFS,ward_duties[i,1]), 
+                                            to_enum(DAYS,ward_duties[i,2]), 
+                                            to_enum(DUTIES,ward_duties[i,3])) | i in 1..length(col(ward_duties,1))];
+
 % Decision Variables
 array[STAFFS, DAYS] of var DUTIES: roster;
 array[DAYS, DUTIES] of var set of STAFFS: ward;
@@ -83,6 +92,7 @@ constraint forall(i in DAYS) (
 );
 
 % Rule feature toggle constraints
+constraint active_constraints[WardReqDuty] -> rules1();
 constraint active_constraints[FiveDayWorkingOff] -> rules2();
 constraint active_constraints[WeekendOff] -> rules3();
 constraint active_constraints[NoWeekendPP] -> rules4();
@@ -92,10 +102,16 @@ constraint active_constraints[NormalNightFrequency] -> rules7();
 constraint active_constraints[Consecutive3Duties] -> rules8();
 constraint active_constraints[NormalOffFrequency] -> rules9();
 
+% Rule 1: constraint of matching roster with REQ_DUTIES
+predicate rules1 = forall(i in STAFFS, j in DAYS, k in DUTIES where has_element((i,j,k),REQ_DUTIES)) (
+  roster[i,j] == k
+);
+
 % Rule 2: constraint of # of 5-day working O for every nurse in a month
 int: min_weekend_O = round(card(DAYS) div 15);
 predicate rules2 = (forall(i in STAFFS) (
-    global_cardinality(row(roster,i), OFF, [min_weekend_O], [nWeekends])));    % how to deal with public holidays/extra O
+    global_cardinality(row(roster,i), OFF, [min_weekend_O], [nWeekends])
+));    % how to deal with public holidays/extra O
 
 % Rule 3: constraint of >=2 weekend Os for every nurse in a month
 predicate rules3 = (forall(i in STAFFS) (
