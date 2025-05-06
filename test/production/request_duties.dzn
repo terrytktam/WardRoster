@@ -1,13 +1,13 @@
-req_duties = [| RN1(2), C(30), O
-              | RN1(5), C(30), O
-              | RN2(4), C(30), O
-              | RN2(12), C(30), O
-              | RN3(1), C(30), O |];
-ward_duties = [| APN(4), C(30), A     % ward requirement duty
-               | RN1(3), C(1), N      % bring forward N from previous months
-               | RN1(4), C(1), N
-               | RN2(11), C(1), N
-               | RN3(2), C(1), N |];
+staff_req_duties = [| RN1(2), C(30), O
+                    | RN1(5), C(30), O
+                    | RN2(4), C(30), O
+                    | RN2(12), C(30), O
+                    | RN3(1), C(30), O |];
+ward_req_duties = [| APN(4), C(30), A     % ward requirement duty
+                   | RN1(3), C(2), N      % bring forward N from previous months
+                   | RN1(4), C(2), N
+                   | RN2(11), C(2), N
+                   | RN3(2), C(2), N |];
 annual_leaves = [| APN(3), C(2), 7 
                  | RN1(3), C(23), 7
                  | RN1(9), C(2), 7

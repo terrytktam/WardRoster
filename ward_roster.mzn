@@ -28,8 +28,8 @@ int: nRN2;        % number of RN2s
 int: nRN3;        % number of RN3s
 WEEKDAYS: MONTH_START;
 array[int, int] of int: min_ward;
-array[int, int] of int: req_duties;
-array[int, int] of int: ward_duties;
+array[int, int] of int: staff_req_duties;
+array[int, int] of int: ward_req_duties;
 array[int, int] of int: annual_leaves;
 array[int, int] of int: long_nights;
 array[RULES] of bool: active_constraints;
@@ -37,7 +37,7 @@ array[RULES] of bool: active_constraints;
 % Tuples
 type GradeMins = tuple(GRADES, MINS);
 type DutiesMaxs = tuple(DUTIES, MAXS);
-type WardReqDuties = tuple(STAFFS, DAYS, DUTIES);
+type ReqDuties = tuple(STAFFS, DAYS, DUTIES);
 
 % Derived Parameters
 enum STAFFS = APN(1..nAPN) ++ RN1(1..nRN1) ++ RN2(1..nRN2) ++ RN3(1..nRN3);
@@ -75,9 +75,9 @@ array[int] of int: colmajor_1d = set2array(GRADES) ++
 array[int] of int: transpose = [colmajor_1d[(i-1) * nGrades + j] | j in 1..nGrades, i in 1..card(MAXS)];
 array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
 
-array[int] of WardReqDuties: REQ_DUTIES = [(to_enum(STAFFS,ward_duties[i,1]), 
-                                            to_enum(DAYS,ward_duties[i,2]), 
-                                            to_enum(DUTIES,ward_duties[i,3])) | i in 1..length(col(ward_duties,1))];
+% Derived Parameters (for requested duties)
+array[int] of ReqDuties: STAFF_REQ_DUTIES = req_duties(staff_req_duties);
+array[int] of ReqDuties: WARD_REQ_DUTIES = req_duties(ward_req_duties);
 
 % Decision Variables
 array[STAFFS, DAYS] of var DUTIES: roster;
@@ -103,8 +103,8 @@ constraint active_constraints[Consecutive3Duties] -> rules8();
 constraint active_constraints[NormalOffFrequency] -> rules9();
 
 % Rule 1: constraint of matching roster with REQ_DUTIES
-predicate rules1 = forall(i in STAFFS, j in DAYS, k in DUTIES where has_element((i,j,k),REQ_DUTIES)) (
-  roster[i,j] == k
+predicate rules1 = forall(i in STAFFS, j in DAYS, k in DUTIES where has_element((i,j,k), WARD_REQ_DUTIES)) (
+    roster[i,j] == k
 );
 
 % Rule 2: constraint of # of 5-day working O for every nurse in a month
@@ -199,6 +199,11 @@ function WEEKDAYS: weekday(DAYS: day) =
         int: temp = (enum2int(day) - enum2int(C(1)) + enum2int(MONTH_START)) mod 7
     } in
     if (temp == 0) then Sun else to_enum(WEEKDAYS, temp) endif;
+
+function array[int] of ReqDuties: req_duties(array[int, int] of int: input) = 
+    [(to_enum(STAFFS, input[i,1]), 
+      to_enum(DAYS, input[i,2]), 
+      to_enum(DUTIES, input[i,3])) | i in 1..length(col(input,1))];
 
 % Verify data input and derived parameters
 output ["Whole calendar: "] ++ [show(i) ++ " " | i in DAYS] ++ ["\n"];
