@@ -19,4 +19,5 @@ active_constraints = [
   true, % no triple-A/P and POA constraint (mandatory)
   true, % at least 1 O for NW days constraint (mandatory)
   true, % requested annual leaves (mandatory)
+  true, % requested long night duties (mandatory)
 ];

@@ -13,7 +13,8 @@ enum RULES = {WardReqDuty,            % ward request duty constraint
               NormalNightFrequency,   % at most 1 N for CN days constraint (mandatory)
               Consecutive3Duties,     % no triple-A/P and POA constraint (mandatory)
               NormalOffFrequency,     % at least 1 O for NW days constraint (mandatory)
-              ReqAnnualLeaves         % requested annual leaves (mandatory)
+              ReqAnnualLeaves,        % requested annual leaves (mandatory)
+              LongNightDuties         % requested long night duties (mandatory)
               };
 enum MINS = { shift, total, apn, rn1, rn2, rn3 };
 enum MAXS = { grade, night, am, pm, off };
@@ -84,6 +85,41 @@ array[STAFFS, DAYS] of bool: is_annual_leave = array2d(STAFFS, DAYS, [exists(row
                                                                       j >= annual_leaves[row,2] /\ 
                                                                       j < annual_leaves[row,2] + annual_leaves[row,3]
                                                                       ) | i in STAFFS, j in DAYS]);
+% Function to check if a staff/day is in any long night pattern
+function bool: is_in_long_nights(STAFFS: s, DAYS: d) =
+    exists(row in 1..length(col(long_nights,1))) (
+        s == long_nights[row,1] /\ 
+        d >= long_nights[row,2] /\ 
+        d < long_nights[row,2]+14
+    );
+
+% Function to get the duty for a specific staff/day (if in pattern)
+function opt DUTIES: get_long_night_duty(STAFFS: s, DAYS: d) =
+    if is_in_long_nights(s,d) then
+        let {
+            int: row = min([r | r in 1..length(col(long_nights,1)) where 
+                              long_nights[r,1] == s /\
+                              d >= long_nights[r,2] /\
+                              d < long_nights[r,2]+14]),
+            int: pattern_start = long_nights[row,2],
+            int: day_offset = d - pattern_start + 1
+        } in
+        to_enum(DUTIES, long_nights[row, 2 + day_offset])
+    else
+        <>
+    endif;
+
+% Create the long_night_duties array
+array[STAFFS, DAYS] of opt DUTIES: long_night_duties = 
+    array2d(STAFFS, DAYS, [get_long_night_duty(i,j) | i in STAFFS, j in DAYS]);
+    
+% Function to check if a staff/day is in middle 12 days of any long night pattern
+function bool: is_middle_long_night(STAFFS: s, DAYS: d) =
+    occurs(long_night_duties[s,enum_prev(d)]) /\ occurs(long_night_duties[s,enum_next(d)]);
+
+% Create the mask array
+array[STAFFS, DAYS] of bool: middle_long_night_mask = 
+    array2d(STAFFS, DAYS, [is_middle_long_night(i,j) | i in STAFFS, j in DAYS]);
 
 % Decision Variables
 array[STAFFS, DAYS] of var DUTIES: roster;
@@ -108,6 +144,7 @@ constraint active_constraints[NormalNightFrequency] -> rules7();
 constraint active_constraints[Consecutive3Duties] -> rules8();
 constraint active_constraints[NormalOffFrequency] -> rules9();
 constraint active_constraints[ReqAnnualLeaves] -> rules10();
+constraint active_constraints[LongNightDuties] -> rules11();
 
 % Rule 1: constraint of matching roster with WARD_REQ_DUTIES
 predicate rules1 = forall(i in STAFFS, j in DAYS, k in DUTIES where has_element((i,j,k), WARD_REQ_DUTIES)) (
@@ -162,8 +199,12 @@ array[STATE1, DUTIES] of int: t1 =
    | 0, 0, 6, 2      % state 5 (if not O, can only P)
    | 0, 7, 7, 2      % state 6 (if not O, can only have A/P)
    | 0, 0, 0, 2 |];  % state 7 (can only have O)
-predicate rules6 = (forall(i in STAFFS) (          % how to exclude long night?
-    regular(row(roster,i), Q1, nDuties, t1, q0, STATE1)
+function array[DAYS] of var DUTIES: staff_masked_roster2(STAFFS: i, array[DAYS] of var DUTIES: staff_roster) =
+    array1d(DAYS, [if middle_long_night_mask[i, j] then O else staff_roster[j] endif | j in DAYS]);
+predicate rules6 = (forall(i in STAFFS) (
+    let {
+        array[DAYS] of var DUTIES: masked = staff_masked_roster2(i, row(roster,i))
+    } in regular(masked, Q1, nDuties, t1, q0, STATE1)
 ));
 
 % Rule 7: constraint of at most one N in consecutive CN days (w/o long night)
@@ -172,8 +213,10 @@ set of int: STATE2 = 1..Q2;
 array[STATE2, DUTIES] of int: t2 = array2d(STATE2, DUTIES, [2,q0,q0,q0]++
                                                            [if j == N then 0 else i endif | i in 3..CN, j in DUTIES] ++
                                                            [0,q0,q0,q0]);
-predicate rules7 = (forall(i in STAFFS) (          % how to exclude long night?
-    regular(row(roster,i), Q2, nDuties, t2, q0, STATE2)
+predicate rules7 = (forall(i in STAFFS) (
+    let {
+        array[DAYS] of var DUTIES: masked = staff_masked_roster2(i, row(roster,i))
+    } in regular(masked, Q2, nDuties, t2, q0, STATE2)
 ));
 
 % Rule 8: constraint of no consecutive 3A/3P and POA sequence for every nurse in a row
@@ -202,6 +245,11 @@ predicate rules9 = (forall(i in STAFFS) (
 % Rule 10: constraint of staff entitled annual leaves
 predicate rules10 = forall(i in STAFFS, j in DAYS) (
     is_annual_leave[i,j] -> roster[i,j] == O
+);
+
+% Rule 11: constraint of requested long night duties
+predicate rules11 = forall(i in STAFFS, j in DAYS) (
+    occurs(long_night_duties[i,j]) -> roster[i,j] == long_night_duties[i,j]
 );
 
 % Objective functions
