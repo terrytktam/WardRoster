@@ -112,14 +112,40 @@ function opt DUTIES: get_long_night_duty(STAFFS: s, DAYS: d) =
 % Create the long_night_duties array
 array[STAFFS, DAYS] of opt DUTIES: long_night_duties = 
     array2d(STAFFS, DAYS, [get_long_night_duty(i,j) | i in STAFFS, j in DAYS]);
-    
-% Function to check if a staff/day is in middle 12 days of any long night pattern
-function bool: is_middle_long_night(STAFFS: s, DAYS: d) =
-    occurs(long_night_duties[s,enum_prev(d)]) /\ occurs(long_night_duties[s,enum_next(d)]);
+
+% Function to get mask value for specific staff/day (A/O/<> pattern)
+function opt DUTIES: get_special_mask(STAFFS: s, DAYS: d) =
+    let {
+        % Find all matching pattern rows for this staff/day
+        set of int: matching_rows = {row | row in 1..length(col(long_nights,1)) where
+            s == long_nights[row,1] /\
+            d >= long_nights[row,2]-1 /\  % Include day before pattern
+            d <= long_nights[row,2]+13},  % Include day before end
+        
+        % Get first matching row if exists
+        int: pattern_row = if card(matching_rows) > 0 then min(matching_rows) else 0 endif,
+        
+        % Calculate position relative to pattern start
+        int: pattern_pos = if pattern_row > 0 then 
+            d - long_nights[pattern_row,2] + 2  % +2 because we include day before
+        else 0 endif
+    } in
+    if pattern_row > 0 then
+        if d == long_nights[pattern_row,2]-1 then A       % Day before pattern
+        elseif d >= long_nights[pattern_row,2] /\ 
+               d <= long_nights[pattern_row,2]+11 then O  % Next 11 days after start
+        elseif d == long_nights[pattern_row,2]+12 then A  % Day before last day
+        else <> endif                                     % All other days
+    else <> endif;
 
 % Create the mask array
-array[STAFFS, DAYS] of bool: middle_long_night_mask = 
-    array2d(STAFFS, DAYS, [is_middle_long_night(i,j) | i in STAFFS, j in DAYS]);
+array[STAFFS, DAYS] of opt DUTIES: special_mask = 
+    array2d(STAFFS, DAYS, [get_special_mask(s,d) | s in STAFFS, d in DAYS]);
+
+% Function to apply mask
+function array[DAYS] of var DUTIES: apply_special_mask(STAFFS: s, array[DAYS] of var DUTIES: staff_roster) =
+    array1d(DAYS, [if occurs(special_mask[s,d]) then deopt(special_mask[s,d]) else staff_roster[d] endif
+                  | d in DAYS ]);
 
 % Decision Variables
 array[STAFFS, DAYS] of var DUTIES: roster;
@@ -199,11 +225,9 @@ array[STATE1, DUTIES] of int: t1 =
    | 0, 0, 6, 2      % state 5 (if not O, can only P)
    | 0, 7, 7, 2      % state 6 (if not O, can only have A/P)
    | 0, 0, 0, 2 |];  % state 7 (can only have O)
-function array[DAYS] of var DUTIES: staff_masked_roster2(STAFFS: i, array[DAYS] of var DUTIES: staff_roster) =
-    array1d(DAYS, [if middle_long_night_mask[i, j] then O else staff_roster[j] endif | j in DAYS]);
 predicate rules6 = (forall(i in STAFFS) (
     let {
-        array[DAYS] of var DUTIES: masked = staff_masked_roster2(i, row(roster,i))
+        array[DAYS] of var DUTIES: masked = apply_special_mask(i, row(roster,i))
     } in regular(masked, Q1, nDuties, t1, q0, STATE1)
 ));
 
@@ -215,7 +239,7 @@ array[STATE2, DUTIES] of int: t2 = array2d(STATE2, DUTIES, [2,q0,q0,q0]++
                                                            [0,q0,q0,q0]);
 predicate rules7 = (forall(i in STAFFS) (
     let {
-        array[DAYS] of var DUTIES: masked = staff_masked_roster2(i, row(roster,i))
+        array[DAYS] of var DUTIES: masked = apply_special_mask(i, row(roster,i))
     } in regular(masked, Q2, nDuties, t2, q0, STATE2)
 ));
 
