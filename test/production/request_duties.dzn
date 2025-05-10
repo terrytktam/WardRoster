@@ -1,4 +1,4 @@
-staff_req_duties = [| RN1(2), C(5), O
+staff_req_duties = [| RN1(2), C(30), O
                     | RN1(5), C(30), O
                     | RN2(4), C(30), O
                     | RN2(12), C(30), O
@@ -24,8 +24,8 @@ annual_leaves = [| APN(3), C(2), 7
                  | RN3(4), C(16), 7
                  | RN3(6), C(2), 7
                  | RN3(7), C(9), 14 |];
-long_nights = [| APN(1), C(2),   N,O,N,N,O,O,N,N,N,N,N,O,O,N    % if using it, infeasible
-               | RN1(2), C(2),   N,N,N,O,N,N,O,O,N,N,N,N,O,O
+long_nights = [| APN(1), C(2),   N,O,N,N,O,O,N,N,N,N,N,O,O,N
+               %| RN1(2), C(2),   N,N,N,O,N,N,O,O,N,N,N,N,O,O   % if using it, infeasible for 3-in-a-row constraint
                | RN1(2), C(16),  N,N,N,O,N,N,O,N,N,N,N,O,O,O 
-               | RN2(7), C(16),  N,N,N,N,O,O,N,N,N,N,N,O,O,O    % if changed to RN2(8), infeasible
+               | RN2(7), C(16),  N,N,N,N,O,O,N,N,N,N,N,O,O,O
                | RN3(1), C(2),   N,N,N,N,N,O,O,N,N,O,N,N,O,O|];

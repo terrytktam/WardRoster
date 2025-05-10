@@ -11,7 +11,7 @@ enum RULES = {WardReqDuty,            % ward request duty constraint
               MinWardStaffReq,        % daily ward requirement constraint (mandatory)
               NormalDutyStateDiagram, % normal AN constraint
               NormalNightFrequency,   % at most 1 N for CN days constraint (mandatory)
-              Consecutive3Duties,     % no triple-A/P and POA constraint (mandatory)
+              Consecutive3Duties,     % no triple-A/P and NPA/NPP constraint (mandatory)
               NormalOffFrequency,     % at least 1 O for NW days constraint (mandatory)
               ReqAnnualLeaves,        % requested annual leaves (mandatory)
               LongNightDuties         % requested long night duties (mandatory)
@@ -145,7 +145,7 @@ function opt DUTIES: get_special_mask(STAFFS: s, DAYS: d) =
     } in
     if pattern_row > 0 then
         if d == long_nights[pattern_row,2]-1 then A       % Day before pattern
-        elseif d >= long_nights[pattern_row,2] /\ 
+        elseif d >= long_nights[pattern_row,2]+1 /\ 
                d <= long_nights[pattern_row,2]+11 then O  % Next 11 days after start
         elseif d == long_nights[pattern_row,2]+12 then A  % Day before last day
         else <> endif                                     % All other days
@@ -260,16 +260,17 @@ predicate rules7 = (forall(i in STAFFS) (
     } in regular(masked, Q2, nDuties, t2, q0, STATE2)
 ));
 
-% Rule 8: constraint of no consecutive 3A/3P and POA sequence for every nurse in a row
-int: Q3 = 6;
+% Rule 8: constraint of no consecutive 3A/3P and NPA/NPP sequence for every nurse in a row
+int: Q3 = 7;
 set of int: STATE3 = 1..Q3;
 array[STATE3, DUTIES] of int: t3 = 
-  [| 1, 2, 3, 1      % state 1
-   | 1, 4, 3, 1      % state 2
-   | 1, 2, 5, 6      % state 3 
-   | 1, 0, 3, 1      % state 4 (cannot A again)
-   | 1, 2, 0, 1      % state 5 (cannot P again)
-   | 1, 0, 3, 1 |];  % state 6 (cannot A)
+  [| 4, 2, 3, 1      % state 1
+   | 4, 5, 3, 1      % state 2
+   | 4, 2, 6, 1      % state 3 
+   | 4, 2, 7, 1      % state 4
+   | 4, 0, 3, 1      % state 5 (cannot A again)
+   | 4, 2, 0, 1      % state 6 (cannot P again)
+   | 4, 0, 0, 1 |];  % state 7 (cannot A/P again)
 predicate rules8 = (forall(i in STAFFS) (
     regular(row(roster,i), Q3, nDuties, t3, q0, STATE3)
 ));
@@ -295,9 +296,12 @@ predicate rules11 = forall(i in STAFFS, j in DAYS) (
 
 % Objective functions
 var int: score1 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == A | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);
-var int: score2 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not has_special_assignment(j)]) | i in SHIFTS]);
+var int: score2 = sum([roster[i,j] == N /\ roster[i,enum_next(j)] == P | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);
+var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster[i,enum_next(enum_next(j))] == A 
+                  | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
+var int: score4 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not has_special_assignment(j)]) | i in SHIFTS]);
 
-solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 100;
+solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 100;
 
 % Helper function
 function WEEKDAYS: weekday(DAYS: day) = 
@@ -332,5 +336,5 @@ output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ [
 output["\t" ++ join(" ",[if i in {C(1),X(1)} then "1" elseif i == C(mthStartAt) then show(mthStartAt) elseif i == X(nNextMthDays) then show(nNextMthDays) else " " endif | i in DAYS]) ++ "\n"];
 output["\t" ++ join(" ",[if i in weekends then "S" else " " endif | i in DAYS]) ++ "\t" ++ join("\t",[show(i) | i in DUTIES]) ++ "\n"];
 output[show(i) ++ "\t" ++ join(" ",[show(roster[i,j]) | j in DAYS]) ++ "\t" ++ join("\t",[show(staff_duty_counts[i,j]) | j in DUTIES]) ++ "\n" | i in STAFFS];
-output["# of PAs= " ++ show(score1) ++ "\n"];
-output["Total # of max shift diffs= " ++ show(score2) ++ "\n"];
+output["# of PAs= " ++ show(score1) ++ "\t# of NPs= " ++ show(score2) ++ "\t# of POAs= " ++ show(score3) ++ "\n"];
+output["Total # of max shift diffs= " ++ show(score4) ++ "\n"];
