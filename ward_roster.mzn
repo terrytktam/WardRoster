@@ -77,6 +77,7 @@ array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
 % Derived Parameters (for requested duties)
 array[int] of ReqDuties: STAFF_REQ_DUTIES = req_duties(staff_req_duties);
 array[int] of ReqDuties: WARD_REQ_DUTIES = req_duties(ward_req_duties);
+set of STAFFS: special_staffs = array2set([i | i in STAFFS where has_annual_leave(i) \/ card(long_night_rows(i)) > 0]);
 array[STAFFS, DAYS] of bool: is_annual_leave = array2d(STAFFS, DAYS, [exists(row in 1..length(col(annual_leaves,1))) (
                                                                       i == annual_leaves[row,1] /\ 
                                                                       j >= annual_leaves[row,2] /\ 
@@ -88,11 +89,7 @@ function bool: has_annual_leave(STAFFS: s) =
     exists(row in 1..length(col(annual_leaves,1))) (
         s == annual_leaves[row,1]
     );
-
-% Combined function to check for any special assignment
-function bool: has_special_assignment(STAFFS: s) =
-    has_annual_leave(s) \/ card(long_night_rows(s)) > 0;                                                                     
-                                                                                                                                                                                                               
+                                                                                                                                                                                                             
 % Function to return the matching long night duty row of the input day
 function int: long_night_row(STAFFS: s, DAYS: d) =
     let {
@@ -286,7 +283,7 @@ var int: score2 = sum([roster[i,j] == N /\ roster[i,enum_next(j)] == P | i in ST
 var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster[i,enum_next(enum_next(j))] == A 
                   | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
 var int: score4 = length(STAFF_REQ_DUTIES) - sum([roster[i,j] == k | i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES]);
-var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not has_special_assignment(j)]) | i in SHIFTS]);
+var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not j in special_staffs]) | i in SHIFTS]);
 
 solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 1000 - score5 * 100;
 
