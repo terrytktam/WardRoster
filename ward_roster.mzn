@@ -299,9 +299,10 @@ var int: score1 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == A | i in ST
 var int: score2 = sum([roster[i,j] == N /\ roster[i,enum_next(j)] == P | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);
 var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster[i,enum_next(enum_next(j))] == A 
                   | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
-var int: score4 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not has_special_assignment(j)]) | i in SHIFTS]);
+var int: score4 = length(STAFF_REQ_DUTIES) - sum([roster[i,j] == k | i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES]);
+var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not has_special_assignment(j)]) | i in SHIFTS]);
 
-solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 100;
+solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 1000 - score5 * 100;
 
 % Helper function
 function WEEKDAYS: weekday(DAYS: day) = 
@@ -327,14 +328,14 @@ output ["Available weekends: "] ++ [show(weekends)] ++ ["\n"];
 output ["Available APN/RN1/RN2/RN3s: "] ++ [show(card(GRADE_STAFFS[i])) ++ " " | i in GRADES] ++ ["\n"];
 output ["Index sets of MIN_WARD: "] ++ [show(index_set_1of2(MIN_WARD)) ++ "\t" ++ show(index_set_2of2(MIN_WARD))] ++ ["\n"];
 output ["Min staffs/APNs/RN1s/RN2s/RN3s in N/A/P: \n"] ++ [show2d(MIN_WARD)] ++ ["\n"];
-output ["colmajor_1d: "] ++ [show(colmajor_1d)] ++ ["\n"];
-output ["transpose  : "] ++ [show(transpose)] ++ ["\n"];
 output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\t" ++ show(index_set_2of2(GRADE_MAXS))] ++ ["\n"];
 output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
+output ["STAFF_REQ_DUTIES: \n"] ++ [show(STAFF_REQ_DUTIES)] ++ ["\n"];
+output ["WARD_REQ_DUTIES: \n"] ++ [show(WARD_REQ_DUTIES)] ++ ["\n"];
 
 % Result printing
 output["\t" ++ join(" ",[if i in {C(1),X(1)} then "1" elseif i == C(mthStartAt) then show(mthStartAt) elseif i == X(nNextMthDays) then show(nNextMthDays) else " " endif | i in DAYS]) ++ "\n"];
 output["\t" ++ join(" ",[if i in weekends then "S" else " " endif | i in DAYS]) ++ "\t" ++ join("\t",[show(i) | i in DUTIES]) ++ "\n"];
 output[show(i) ++ "\t" ++ join(" ",[show(roster[i,j]) | j in DAYS]) ++ "\t" ++ join("\t",[show(staff_duty_counts[i,j]) | j in DUTIES]) ++ "\n" | i in STAFFS];
-output["# of PAs= " ++ show(score1) ++ "\t# of NPs= " ++ show(score2) ++ "\t# of POAs= " ++ show(score3) ++ "\n"];
-output["Total # of max shift diffs= " ++ show(score4) ++ "\n"];
+output["# of PAs= " ++ show(score1) ++ "\t# of NPs= " ++ show(score2) ++ "\t# of POAs= " ++ show(score3) ++ "\t# of re-duty non-fulfillments= " ++ show(score4) ++ "\n"];
+output["Total # of max shift diffs= " ++ show(score5) ++ "\n"];
