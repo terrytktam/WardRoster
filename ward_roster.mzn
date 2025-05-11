@@ -110,20 +110,17 @@ function opt DUTIES: get_special_mask(STAFFS: s, DAYS: d) =
         set of int: matching_rows = {row | row in long_night_rows(s)
                                      where d >= long_nights[row,2]-1 /\  % Include day before pattern
                                            d < long_nights[row,2]+14},  % Include day before end
-        
+        int: nRows = card(matching_rows),
         % Get first matching row if exists
-        int: pattern_row = if card(matching_rows) > 0 then min(matching_rows) else 0 endif,
-        
-        % Calculate position relative to pattern start
-        int: pattern_pos = if pattern_row > 0 then 
-            d - long_nights[pattern_row,2] + 2  % +2 because we include day before
-        else 0 endif
+        int: pattern_row = if nRows == 2 then max(matching_rows) elseif nRows > 0 then min(matching_rows) else 0 endif,
     } in
     if pattern_row > 0 then
-        if d == long_nights[pattern_row,2]-1 then A       % Day before pattern
+        if d == long_nights[pattern_row,2]-1 then 
+            if occurs(long_night_duties[s, d]) then O else A endif  % Day before pattern
+        elseif d == long_nights[pattern_row,2] /\ occurs(long_night_duties[s, enum_prev(d)]) then O
         elseif d >= long_nights[pattern_row,2]+1 /\ 
-               d <= long_nights[pattern_row,2]+11 then O  % Next 11 days after start
-        elseif d == long_nights[pattern_row,2]+12 then A  % Day before last day
+               d <= long_nights[pattern_row,2]+12 then O  % Next 12 days after start
+        elseif d == long_nights[pattern_row,2]+13 then A  % Last day
         else <> endif                                     % All other days
     else <> endif;
 
@@ -283,7 +280,7 @@ var int: score2 = sum([roster[i,j] == N /\ roster[i,enum_next(j)] == P | i in ST
 var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster[i,enum_next(enum_next(j))] == A 
                   | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
 var int: score4 = length(STAFF_REQ_DUTIES) - sum([roster[i,j] == k | i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES]);
-var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not j in special_staffs]) | i in SHIFTS]);
+var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not (j in special_staffs)]) | i in SHIFTS]);
 
 solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 1000 - score5 * 100;
 
@@ -315,6 +312,8 @@ output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\
 output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
 output ["STAFF_REQ_DUTIES: \n"] ++ [show(STAFF_REQ_DUTIES)] ++ ["\n"];
 output ["WARD_REQ_DUTIES: \n"] ++ [show(WARD_REQ_DUTIES)] ++ ["\n"];
+output ["special_mask of APN(1): \n"] ++ [show(row(special_mask,APN(1)))] ++ ["\n"];
+output ["special_mask of RN1(2): \n"] ++ [show(row(special_mask,RN1(2)))] ++ ["\n"];
 
 % Result printing
 output["\t" ++ join(" ",[if i in {C(1),X(1)} then "1" elseif i == C(mthStartAt) then show(mthStartAt) elseif i == X(nNextMthDays) then show(nNextMthDays) else " " endif | i in DAYS]) ++ "\n"];
