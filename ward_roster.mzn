@@ -82,29 +82,6 @@ array[STAFFS, DAYS] of bool: is_annual_leave = array2d(STAFFS, DAYS, [exists(row
                                                                       j >= annual_leaves[row,2] /\ 
                                                                       j < annual_leaves[row,2] + annual_leaves[row,3]
                                                                       ) | i in STAFFS, j in DAYS]);
-% Function to check if a staff/day is in any long night pattern
-function bool: is_in_long_nights(STAFFS: s, DAYS: d) =
-    exists(row in 1..length(col(long_nights,1))) (
-        s == long_nights[row,1] /\ 
-        d >= long_nights[row,2] /\ 
-        d < long_nights[row,2]+14
-    );
-
-% Function to get the duty for a specific staff/day (if in pattern)
-function opt DUTIES: get_long_night_duty(STAFFS: s, DAYS: d) =
-    if is_in_long_nights(s,d) then
-        let {
-            int: row = min([r | r in 1..length(col(long_nights,1)) where 
-                              long_nights[r,1] == s /\
-                              d >= long_nights[r,2] /\
-                              d < long_nights[r,2]+14]),
-            int: pattern_start = long_nights[row,2],
-            int: day_offset = d - pattern_start + 1
-        } in
-        to_enum(DUTIES, long_nights[row, 2 + day_offset])
-    else
-        <>
-    endif;
 
 % Function to check if staff has annual leave on a specific day
 function bool: has_annual_leave(STAFFS: s) =
@@ -112,28 +89,30 @@ function bool: has_annual_leave(STAFFS: s) =
         s == annual_leaves[row,1]
     );
 
-% Function to check if staff has long night duty on a specific day
-function bool: has_long_night(STAFFS: s) =
-    exists(row in 1..length(col(long_nights,1))) (
-        s == long_nights[row,1]
-    );
-
 % Combined function to check for any special assignment
 function bool: has_special_assignment(STAFFS: s) =
-    has_annual_leave(s) \/ has_long_night(s);
+    has_annual_leave(s) \/ card(long_night_rows(s)) > 0;                                                                     
+                                                                                                                                                                                                               
+% Function to return the matching long night duty row of the input day
+function int: long_night_row(STAFFS: s, DAYS: d) =
+    let {
+        set of int: matching_rows = {row | row in 1..length(long_nights) where
+                                      s == long_nights[row,1] /\
+                                      d >= long_nights[row,2] /\
+                                      d < long_nights[row,2]+14}
+    } in if card(matching_rows) > 0 then min(matching_rows) else 0 endif;
 
-% Create the long_night_duties array
-array[STAFFS, DAYS] of opt DUTIES: long_night_duties = 
-    array2d(STAFFS, DAYS, [get_long_night_duty(i,j) | i in STAFFS, j in DAYS]);
+% Function to return all matching rows of long night duties 
+function set of int: long_night_rows(STAFFS: s) =
+    {row | row in 1..length(long_nights) where s == long_nights[row,1]};
 
 % Function to get mask value for specific staff/day (A/O/<> pattern)
 function opt DUTIES: get_special_mask(STAFFS: s, DAYS: d) =
     let {
         % Find all matching pattern rows for this staff/day
-        set of int: matching_rows = {row | row in 1..length(col(long_nights,1)) where
-            s == long_nights[row,1] /\
-            d >= long_nights[row,2]-1 /\  % Include day before pattern
-            d <= long_nights[row,2]+13},  % Include day before end
+        set of int: matching_rows = {row | row in long_night_rows(s)
+                                     where d >= long_nights[row,2]-1 /\  % Include day before pattern
+                                           d < long_nights[row,2]+14},  % Include day before end
         
         % Get first matching row if exists
         int: pattern_row = if card(matching_rows) > 0 then min(matching_rows) else 0 endif,
@@ -289,7 +268,14 @@ predicate rules10 = forall(i in STAFFS, j in DAYS) (
     is_annual_leave[i,j] -> roster[i,j] == O
 );
 
-% Rule 11: constraint of requested long night duties
+% Rule 11: constraint of requested long night duties   
+array[STAFFS, DAYS] of opt DUTIES: long_night_duties = 
+    array2d(STAFFS, DAYS, [get_long_night_duty(i,j) | i in STAFFS, j in DAYS]);
+function opt DUTIES: get_long_night_duty(STAFFS: s, DAYS: d) =
+    let {
+        int: row = long_night_row(s, d),
+        int: day_offset = d - if row > 0 then long_nights[row,2] else 0 endif + 1
+    } in if row == 0 then <> else to_enum(DUTIES, long_nights[row, 2 + day_offset]) endif;
 predicate rules11 = forall(i in STAFFS, j in DAYS) (
     occurs(long_night_duties[i,j]) -> roster[i,j] == long_night_duties[i,j]
 );
