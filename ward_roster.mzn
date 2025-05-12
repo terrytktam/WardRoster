@@ -93,8 +93,7 @@ function bool: has_annual_leave(STAFFS: s) =
 % Function to return the matching long night duty row of the input day
 function int: long_night_row(STAFFS: s, DAYS: d) =
     let {
-        set of int: matching_rows = {row | row in 1..length(long_nights) where
-                                      s == long_nights[row,1] /\
+        set of int: matching_rows = {row | row in long_night_rows(s) where
                                       d >= long_nights[row,2] /\
                                       d < long_nights[row,2]+14}
     } in if card(matching_rows) > 0 then min(matching_rows) else 0 endif;
@@ -103,26 +102,16 @@ function int: long_night_row(STAFFS: s, DAYS: d) =
 function set of int: long_night_rows(STAFFS: s) =
     {row | row in 1..length(long_nights) where s == long_nights[row,1]};
 
-% Function to get mask value for specific staff/day (A/O/<> pattern)
+% Function to get mask value for specific staff/day (P/O/<> pattern)
 function opt DUTIES: get_special_mask(STAFFS: s, DAYS: d) =
     let {
-        % Find all matching pattern rows for this staff/day
-        set of int: matching_rows = {row | row in long_night_rows(s)
-                                     where d >= long_nights[row,2]-1 /\  % Include day before pattern
-                                           d < long_nights[row,2]+14},  % Include day before end
-        int: nRows = card(matching_rows),
-        % Get first matching row if exists
-        int: pattern_row = if nRows == 2 then max(matching_rows) elseif nRows > 0 then min(matching_rows) else 0 endif,
+        int: row = long_night_row(s,d)
     } in
-    if pattern_row > 0 then
-        if d == long_nights[pattern_row,2]-1 then 
-            if occurs(long_night_duties[s, d]) then O else A endif  % Day before pattern
-        elseif d == long_nights[pattern_row,2] /\ occurs(long_night_duties[s, enum_prev(d)]) then O
-        elseif d >= long_nights[pattern_row,2]+1 /\ 
-               d <= long_nights[pattern_row,2]+12 then O  % Next 12 days after start
-        elseif d == long_nights[pattern_row,2]+13 then A  % Last day
-        else <> endif                                     % All other days
-    else <> endif;
+    if row > 0 then
+        if d == long_nights[row,2] then 
+            if occurs(long_night_duties[s, enum_prev(d)]) then O else P endif  % First day
+        else O endif    % Next 13 days after start
+    else <> endif;      % All other days
 
 % Create the mask array
 array[STAFFS, DAYS] of opt DUTIES: special_mask = 
