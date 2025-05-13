@@ -24,8 +24,8 @@ annual_leaves = [| APN(3), C(2), 7
                  | RN3(4), C(16), 7
                  | RN3(6), C(2), 7
                  | RN3(7), C(9), 14 |];
-long_nights = [| APN(1), C(9),   O,N,N,N,O,O,N,N,N,N,N,O,O,N
+long_nights = [| APN(1), C(30),  O,N,N,N,O,O,N,N,N,N,N,O,O,N
                | RN1(2), C(2),   N,N,N,O,N,N,O,O,N,N,N,N,O,O
                | RN1(2), C(16),  N,N,N,O,N,N,O,N,N,N,N,O,O,O 
-               | RN2(7), C(16),  N,N,N,N,O,O,N,N,N,N,N,O,O,O
-               | RN3(1), C(2),   N,N,N,N,N,O,O,N,N,O,N,N,O,O|];  % if changed to C(9), infeasible
+               | RN3(1), C(2),   N,N,N,N,N,O,O,N,N,O,N,N,O,O   % if changed to C(9), infeasible
+               | RN3(1), C(23),  N,N,N,N,O,O,N,N,N,N,N,O,O,O|];
