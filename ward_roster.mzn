@@ -60,7 +60,7 @@ int: mthStartAt = (8-enum2int(MONTH_START)) mod 7 + 1;
 int: nPrevMthDays = max([MW,CN]) - mthStartAt + 1;
 int: nNextMthDays = (enum2int(Sun)-enum2int(MONTH_START)+35+1-nMthDays) mod 7 + 1;
 enum DAYS = V(1..nPrevMthDays) ++ C(1..nMthDays) ++ X(1..nNextMthDays);
-array[DAYS] of WEEKDAYS: DAY_WEEKDAYS = array1d(DAYS,[weekday(i) | i in DAYS]);
+array[DAYS] of WEEKDAYS: DAY_WEEKDAYS = [weekday(i) | i in DAYS];
 set of DAYS: weekends = array2set([i | i in DAYS where DAY_WEEKDAYS[i] in WEEKEND]);
 int: nDays = card(DAYS);
 
@@ -183,8 +183,8 @@ predicate ward_req(array[STAFFS] of var DUTIES: a) = (
     global_cardinality(a, SHIFTS, col(MIN_WARD,total), [nStaffs | _ in SHIFTS]) /\  % upper bound can be more tightened
     forall(i in GRADES, j in MINS where (i, j) in GRADE_MINS) (
         let {
-            array[SHIFTS] of int: d = array1d(SHIFTS, [col(MIN_WARD,j)[k] | k in SHIFTS]),
-            array[SHIFTS] of int: e = array1d(SHIFTS, [row(GRADE_MAXS,i)[k] | k in SHIFT_MAXS])
+            array[SHIFTS] of int: d = [col(MIN_WARD,j)[k] | k in SHIFTS],
+            array[SHIFTS] of int: e = [row(GRADE_MAXS,i)[k] | k in SHIFT_MAXS]
         } in 
         global_cardinality(a[GRADE_STAFFS[i]], SHIFTS, d, e))
 );
