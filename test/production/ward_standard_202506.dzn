@@ -1,0 +1,26 @@
+nAPN = 8;
+nRN1 = 19;
+nRN2 = 8;
+nRN3 = 6;
+MW = 7;
+CN = 6;
+min_ward = [| N, 5, 0, 2, 0, 0      % min # of total, APNs, RN1s, RN2s, RN3s at N
+            | A, 9, 2, 3, 0, 0      % min # of total, APNs, RN1s, RN2s, RN3s at A
+            | P, 9, 2, 3, 0, 0|];   % min # of total, APNs, RN1s, RN2s, RN3s at P
+%max_ward = [| N, 1      % max # of RN3s at N
+%            | A, 2      % max # of RN3s at A
+%            | P, 2|];   % max # of RN3s at P
+
+active_constraints = [
+  true, % ward request duty constraint
+  true, % 5-day working O entitlement constraint
+  true, % # of weekend O constraint
+  true, % no weekend PP constraint (mandatory)
+  true, % daily ward requirement constraint (mandatory)
+  true, % normal AN constraint
+  true, % at most 1 N for CN days constraint (mandatory)
+  true, % no triple-A/P and NPA/NPP constraint (mandatory)
+  true, % at least 1 O for NW days constraint (mandatory)
+  true, % requested annual leaves (mandatory)
+  true, % requested long night duties (mandatory)
+];

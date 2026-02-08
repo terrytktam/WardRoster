@@ -1,3 +1,4 @@
 CCYYMM = 202011;
 nMthDays = 30;
 MONTH_START = Sun;
+public_holidays = {};

@@ -1,0 +1,4 @@
+CCYYMM = 202505;
+nMthDays = 31;
+MONTH_START = Thu;
+public_holidays = {C(1), C(5), C(31)};

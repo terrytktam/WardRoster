@@ -1,0 +1,112 @@
+staff_req_duties = [| APN(2), C(9), O
+                    | APN(2), C(19), O
+                    | APN(2), C(27), O
+                    | APN(3), C(3), A    % APN(3) request A for every Tue
+                    | APN(3), C(10), A
+                    | APN(3), C(17), A
+                    | APN(3), C(24), A
+                    | APN(3), X(1), A
+                    | APN(5), C(2), O    % APN(5) request O for every Mon
+                    | APN(5), C(9), O
+                    | APN(5), C(11), O
+                    | APN(5), C(14), O
+                    | APN(5), C(16), O
+                    | APN(5), C(23), O
+                    | APN(5), C(30), O
+                    | RN1(2), C(9), O
+                    | RN1(3), C(7), O
+                    | RN1(3), C(8), O
+                    | RN1(3), C(22), O
+                    | RN1(5), C(2), O
+                    | RN1(5), C(17), O
+                    | RN1(5), C(21), N
+                    | RN1(6), C(8), O    % RN1(6) request O for consecutive AL
+                    | RN1(6), C(21), O
+                    | RN1(6), C(22), O
+                    | RN1(11), C(5), A    % RN1(11) request A for skipped Thurs
+                    | RN1(11), C(19), A
+                    | RN1(12), C(13), O
+                    | RN1(12), C(14), O
+                    | RN1(12), C(20), N   % RN1(12) request N for some Fri
+                    | RN1(12), C(27), N
+                    | RN1(13), C(16), O   % RN1(13) request O for consecutive LN
+                    | RN1(13), C(22), O
+                    | RN1(13), C(30), O
+                    | RN1(15), C(4), A
+                    | RN1(15), C(5), A
+                    | RN1(15), C(14), O   % RN1(15) request O for consecutive AL
+                    | RN1(15), C(15), O
+                    | RN1(18), C(4), O
+                    | RN1(18), C(8), O
+                    | RN1(19), C(15), O   % RN1(19) request O for consecutive AL
+                    | RN1(19), C(27), O
+                    | RN2(2), C(22), O
+                    | RN2(3), C(21), O
+                    | RN2(4), C(9), O
+                    | RN2(4), X(1), A
+                    | RN2(5), C(17), O
+                    | RN2(5), C(18), O
+                    | RN2(6), C(26), A
+                    | RN2(6), C(28), O
+                    | RN2(6), C(29), O
+                    | RN3(2), C(14), A
+                    | RN3(4), C(5), O
+                    | RN3(5), C(9), O |];
+ward_req_duties = [| APN(1), C(1), N     % bring forward from previous month
+                   | APN(2), C(1), P
+                   | APN(3), C(1), A
+                   | APN(4), C(1), O
+                   | APN(5), C(1), A
+                   | APN(6), C(1), P
+                   | APN(7), C(1), O
+                   | APN(8), C(1), P
+                   | RN1(1), C(1), O
+                   | RN1(2), C(1), O
+                   | RN1(3), C(1), P
+                   | RN1(4), C(1), N
+                   | RN1(5), C(1), O
+                   | RN1(6), C(1), P
+                   | RN1(7), C(1), O
+                   | RN1(8), C(1), N
+                   | RN1(9), C(1), O
+                   | RN1(10), C(1), A
+                   | RN1(11), C(1), O
+                   | RN1(12), C(1), A
+                   | RN1(13), C(1), O
+                   | RN1(14), C(1), O
+                   | RN1(15), C(1), N
+                   | RN1(16), C(1), P
+                   | RN1(17), C(1), A
+                   | RN1(18), C(1), A
+                   | RN1(19), C(1), N
+                   | RN2(1), C(1), O
+                   | RN2(2), C(1), P
+                   | RN2(3), C(1), A
+                   | RN2(4), C(1), O
+                   | RN2(5), C(1), P
+                   | RN2(6), C(1), O
+                   | RN2(7), C(1), O
+                   | RN2(8), C(1), O
+                   | RN3(1), C(1), O
+                   | RN3(2), C(1), A
+                   | RN3(3), C(1), N
+                   | RN3(4), C(1), P
+                   | RN3(5), C(1), A |];
+annual_leaves = [| APN(7), C(16), 7 
+                 | RN1(1), C(16), 7
+                 | RN1(3), C(23), 7
+                 | RN1(6), C(9), 7
+                 | RN1(7), C(16), 7
+                 | RN1(15), C(16), 14
+                 | RN1(16), C(30), 7
+                 | RN1(17), C(30), 7
+                 | RN1(19), C(16), 7
+                 | RN3(2), C(23), 14 |]; % cross-month annual leaves
+long_nights = [| RN1(1), C(2),   N,N,N,O,N,N,O,N,N,N,N,O,O,O
+               | RN1(1), C(23),  O,N,N,O,N,N,O,N,N,O,N,N,N,O  % cross-month long-night
+               | RN1(9), C(9),   N,N,N,O,O,O,O,O,N,N,N,N,N,N 
+               | RN1(13), C(2),  O,N,N,N,N,N,O,N,N,N,N,O,O,O
+               | RN1(18), C(16), O,O,O,N,N,N,N,O,N,N,N,N,N,O
+               | RN1(18), C(30), O,N,N,N,N,O,O,N,N,N,N,N,O,O  % cross-month long-night (fictional latter portion)
+               | RN2(1), C(30),  N,N,N,N,O,N,N,N,O,N,N,O,O,O  % cross-month long-night (fictional latter portion)
+               | RN2(4), C(16),  O,N,N,N,N,N,O,N,N,N,N,O,O,O |];

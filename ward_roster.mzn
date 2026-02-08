@@ -35,6 +35,7 @@ array[int, int] of int: ward_req_duties;
 array[int, int] of int: annual_leaves;
 array[int, int] of int: long_nights;
 array[RULES] of bool: active_constraints;
+set of DAYS: public_holidays;
 
 % Tuples
 type GradeMins = tuple(GRADES, MINS);
@@ -47,6 +48,7 @@ int: nStaffs = card(STAFFS);
 int: nWeekends = card(weekends);
 int: nDuties = card(DUTIES);
 int: nGrades = card(GRADES);
+int: nPHs = card(public_holidays);
 array[GRADES] of int: nGradeStaffs = [nAPN, nRN1, nRN2, nRN3];
 array[GRADES] of GradeMins: GRADE_MINS = [(APN, apn), (RN1, rn1), (RN2, rn2), (RN3, rn3)];
 array[DUTIES] of DutiesMaxs: DUTIES_MAXS = [(N, night), (A, am), (P, pm), (O, off)];
