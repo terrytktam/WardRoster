@@ -7,9 +7,7 @@ CN = 6;
 min_ward = [| N, 5, 0, 2, 0, 0      % min # of total, APNs, RN1s, RN2s, RN3s at N
             | A, 9, 2, 3, 0, 0      % min # of total, APNs, RN1s, RN2s, RN3s at A
             | P, 9, 2, 3, 0, 0|];   % min # of total, APNs, RN1s, RN2s, RN3s at P
-%max_ward = [| N, 1      % max # of RN3s at N
-%            | A, 2      % max # of RN3s at A
-%            | P, 2|];   % max # of RN3s at P
+max_rn3 = [1, 2, 2];                % max # of RN3 at N,A,P
 
 active_constraints = [
   true, % ward request duty constraint

@@ -31,6 +31,7 @@ int: nRN2;        % number of RN2s
 int: nRN3;        % number of RN3s
 WEEKDAYS: MONTH_START;
 array[int, int] of int: min_ward;
+array[int] of int: max_rn3;
 array[int, int] of int: staff_req_duties;
 array[int, int] of int: ward_req_duties;
 array[int, int] of int: annual_leaves;
@@ -71,8 +72,9 @@ int: nDays = card(DAYS);
 array[SHIFTS, MINS] of int: MIN_WARD = array2d(SHIFTS, MINS, min_ward);
 array[GRADES] of set of STAFFS: GRADE_STAFFS = [APN(1..nAPN), RN1(1..nRN1), RN2(1..nRN2), RN3(1..nRN3)];
 array[int] of int: colmajor_1d = set2array(GRADES) ++ 
-                                [nGradeStaffs[k] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where i != l /\ (k, m) in GRADE_MINS]) 
-                                | i in SHIFTS, j in MAXS, k in GRADES where (i, j) in DUTIES_MAXS] ++
+                                [if k == RN3 then max_rn3[i] 
+                                  else nGradeStaffs[k] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where i != l /\ (k, m) in GRADE_MINS]) 
+                                 endif | i in SHIFTS, j in MAXS, k in GRADES where (i, j) in DUTIES_MAXS] ++
                                 [nGradeStaffs[i] - sum(col(MIN_WARD, j)) | i in GRADES, j in MINS where (i, j) in GRADE_MINS];
 array[int] of int: transpose = [colmajor_1d[(i-1) * nGrades + j] | j in 1..nGrades, i in 1..card(MAXS)];
 array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
