@@ -71,8 +71,8 @@ int: nDays = card(DAYS);
 array[SHIFTS, MINS] of int: MIN_WARD = array2d(SHIFTS, MINS, min_ward);
 array[GRADES] of set of STAFFS: GRADE_STAFFS = [APN(1..nAPN), RN1(1..nRN1), RN2(1..nRN2), RN3(1..nRN3)];
 array[int] of int: colmajor_1d = set2array(GRADES) ++ 
-                                [nGradeStaffs[i] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where j != l /\ (i, m) in GRADE_MINS]) 
-                                | i in GRADES, j in SHIFTS, k in MAXS where (j, k) in DUTIES_MAXS] ++
+                                [nGradeStaffs[k] - sum([MIN_WARD[l, m] | l in SHIFTS, m in MINS where i != l /\ (k, m) in GRADE_MINS]) 
+                                | i in SHIFTS, j in MAXS, k in GRADES where (i, j) in DUTIES_MAXS] ++
                                 [nGradeStaffs[i] - sum(col(MIN_WARD, j)) | i in GRADES, j in MINS where (i, j) in GRADE_MINS];
 array[int] of int: transpose = [colmajor_1d[(i-1) * nGrades + j] | j in 1..nGrades, i in 1..card(MAXS)];
 array[GRADES, MAXS] of int: GRADE_MAXS = array2d(GRADES, MAXS, transpose);
@@ -310,7 +310,7 @@ output ["Available APN/RN1/RN2/RN3s: "] ++ [show(card(GRADE_STAFFS[i])) ++ " " |
 output ["Index sets of MIN_WARD: "] ++ [show(index_set_1of2(MIN_WARD)) ++ "\t" ++ show(index_set_2of2(MIN_WARD))] ++ ["\n"];
 output ["Min staffs/APNs/RN1s/RN2s/RN3s in N/A/P: \n"] ++ [show2d(MIN_WARD)] ++ ["\n"];
 output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\t" ++ show(index_set_2of2(GRADE_MAXS))] ++ ["\n"];
-output ["Max Offs/Ns/Ps/As in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
+output ["Max Ns/Ps/As/Offs in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
 output ["STAFF_REQ_DUTIES: \n"] ++ [show(STAFF_REQ_DUTIES)] ++ ["\n"];
 output ["WARD_REQ_DUTIES: \n"] ++ [show(WARD_REQ_DUTIES)] ++ ["\n"];
 output ["special_mask of APN(1): \n"] ++ [show(row(special_mask,APN(1)))] ++ ["\n"];
