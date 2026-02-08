@@ -5,7 +5,7 @@ enum WEEKDAYS = {Mon, Tue, Wed, Thu, Fri, Sat, Sun};
 enum DUTIES = {N, A, P, O};
 enum GRADES = {APN, RN1, RN2, RN3};
 enum RULES = {WardReqDuty,            % ward request duty constraint
-              FiveDayWorkingOff,      % 5-day working O entitlement constraint
+              EntitledDayOff,         % 5-day working + public holiday O entitlement constraint
               WeekendOff,             % # of weekend O constraint
               NoWeekendPP,            % no weekend PP constraint (mandatory)
               MinWardStaffReq,        % daily ward requirement constraint (mandatory)
@@ -14,7 +14,8 @@ enum RULES = {WardReqDuty,            % ward request duty constraint
               Consecutive3Duties,     % no triple-A/P and NPA/NPP constraint (mandatory)
               NormalOffFrequency,     % at least 1 O for NW days constraint (mandatory)
               ReqAnnualLeaves,        % requested annual leaves (mandatory)
-              LongNightDuties         % requested long night duties (mandatory)
+              LongNightDuties,        % requested long night duties (mandatory)
+              PublicHolidayOff        % # of public holiday O constraint
               };
 enum MINS = { shift, total, apn, rn1, rn2, rn3 };
 enum MAXS = { grade, night, am, pm, off };
@@ -142,7 +143,7 @@ constraint forall(i in STAFFS) (
 
 % Rule feature toggle constraints
 constraint active_constraints[WardReqDuty] -> rules1();
-constraint active_constraints[FiveDayWorkingOff] -> rules2();
+constraint active_constraints[EntitledDayOff] -> rules2();
 constraint active_constraints[WeekendOff] -> rules3();
 constraint active_constraints[NoWeekendPP] -> rules4();
 constraint active_constraints[MinWardStaffReq] -> rules5();
@@ -152,20 +153,23 @@ constraint active_constraints[Consecutive3Duties] -> rules8();
 constraint active_constraints[NormalOffFrequency] -> rules9();
 constraint active_constraints[ReqAnnualLeaves] -> rules10();
 constraint active_constraints[LongNightDuties] -> rules11();
+constraint active_constraints[PublicHolidayOff] -> rules12();
 
 % Rule 1: constraint of matching roster with WARD_REQ_DUTIES
 predicate rules1 = forall(i in STAFFS, j in DAYS, k in DUTIES where has_element((i,j,k), WARD_REQ_DUTIES)) (
     roster[i,j] == k
 );
 
-% Rule 2: constraint of # of 5-day working O for every nurse in a month
+% Rule 2: constraint of # of Os (5-day working + public holidays) for every nurse in a month
 int: min_weekend_O = round(card(DAYS) div 15);
+int: min_O_count = min_weekend_O + nPHs;
+int: max_O_count = nWeekends + nPHs;
 function array[DAYS] of var DUTIES: staff_masked_roster(STAFFS: i, array[DAYS] of var DUTIES: staff_roster) =
     array1d(DAYS, [if is_annual_leave[i, j] then N else staff_roster[j] endif | j in DAYS]);
 predicate rules2 = (forall(i in STAFFS) (
     let {
         array[DAYS] of var DUTIES: masked = staff_masked_roster(i, row(roster,i))
-    } in global_cardinality(masked, OFF, [min_weekend_O], [nWeekends])
+    } in global_cardinality(masked, OFF, [min_O_count], [max_O_count])
 ));
 
 % Rule 3: constraint of >=2 weekend Os for every nurse in a month
@@ -264,6 +268,12 @@ function opt DUTIES: get_long_night_duty(STAFFS: s, DAYS: d) =
 predicate rules11 = forall(i in STAFFS, j in DAYS) (
     occurs(long_night_duties[i,j]) -> roster[i,j] == long_night_duties[i,j]
 );
+
+% Rule 12: constraint of >=1 public holiday Os for every nurse in a month if # of public holidays >= 3
+int: min_ph_O = round((nPHs-1)/3);
+predicate rules12 = (forall(i in STAFFS) (
+    global_cardinality([roster[i,j] | j in public_holidays], OFF, [min_ph_O], [nPHs])
+));
 
 % Objective functions
 var int: score1 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == A | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);

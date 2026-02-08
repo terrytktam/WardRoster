@@ -13,7 +13,7 @@ min_ward = [| N, 5, 0, 2, 0, 0      % min # of total, APNs, RN1s, RN2s, RN3s at 
 
 active_constraints = [
   true, % ward request duty constraint
-  true, % 5-day working O entitlement constraint
+  true, % 5-day working + public holiday O entitlement constraint
   true, % # of weekend O constraint
   true, % no weekend PP constraint (mandatory)
   true, % daily ward requirement constraint (mandatory)
@@ -23,4 +23,5 @@ active_constraints = [
   true, % at least 1 O for NW days constraint (mandatory)
   true, % requested annual leaves (mandatory)
   true, % requested long night duties (mandatory)
+  true, % # of public holiday O constraint
 ];
