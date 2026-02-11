@@ -131,6 +131,7 @@ function array[DAYS] of var DUTIES: apply_special_mask(STAFFS: s, array[DAYS] of
 array[STAFFS, DAYS] of var DUTIES: roster;
 array[DAYS, DUTIES] of var set of STAFFS: ward;
 array[STAFFS, DUTIES] of var int: staff_duty_counts;
+array[DAYS, SHIFTS] of var int: ward_shift_manpower;
 
 % Channel constraints for roster/ward
 constraint forall(i in DAYS) (
@@ -141,6 +142,9 @@ constraint forall(i in DAYS) (
 );
 constraint forall(i in STAFFS) (
     global_cardinality(row(roster,i), DUTIES, row(staff_duty_counts,i))
+);
+constraint forall(i in DAYS, j in SHIFTS) (
+    ward_shift_manpower[i,j] = card(ward[i,j])
 );
 
 % Rule feature toggle constraints
@@ -284,8 +288,9 @@ var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster
                   | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
 var int: score4 = length(STAFF_REQ_DUTIES) - sum([roster[i,j] == k | i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES]);
 var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not (j in special_staffs)]) | i in SHIFTS]);
+var int: score6 = sum([max_diff_manpower(col(ward_shift_manpower,i)) | i in SHIFTS]);
 
-solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 1000 - score5 * 100;
+solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 500 - score5 * 100 - score6 * 200;
 
 % Helper function
 function WEEKDAYS: weekday(DAYS: day) = 
@@ -302,7 +307,8 @@ function array[int] of ReqDuties: req_duties(array[int, int] of int: input) =
 function string: format_shift(set of STAFFS: staffs) =
     join("",[show(card(staffs intersect GRADE_STAFFS[grade])) | grade in GRADES]);
 
-function var int: max_diff_shifts(array[int] of var int: input) = max(input) - min(input); 
+function var int: max_diff_shifts(array[int] of var int: input) = max(input) - min(input);
+function var int: max_diff_manpower(array[DAYS] of var int: input) = max(input) - min(input); 
 
 % Verify data input and derived parameters
 output ["Whole calendar: "] ++ [show(i) ++ " " | i in DAYS] ++ ["\n"];
@@ -316,12 +322,13 @@ output ["Max Ns/Ps/As/Offs in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ [
 output ["STAFF_REQ_DUTIES: \n"] ++ [show(STAFF_REQ_DUTIES)] ++ ["\n"];
 output ["WARD_REQ_DUTIES: \n"] ++ [show(WARD_REQ_DUTIES)] ++ ["\n"];
 output ["special_mask of APN(1): \n"] ++ [show(row(special_mask,APN(1)))] ++ ["\n"];
-output ["special_mask of RN1(2): \n"] ++ [show(row(special_mask,RN1(2)))] ++ ["\n"];
-output ["special_mask of RN3(1): \n"] ++ [show(row(special_mask,RN3(1)))] ++ ["\n"];
+output ["special_mask of RN1(1): \n"] ++ [show(row(special_mask,RN1(1)))] ++ ["\n"];
+output ["special_mask of RN2(1): \n"] ++ [show(row(special_mask,RN2(1)))] ++ ["\n"];
 
 % Result printing
+output[show(i) ++ "\t" ++ join("\n",[if (j != N) then "\t" endif ++ show(j) ++ " " ++ show(ward_shift_manpower[i,j]) ++ " " ++ show(ward[i,j]) | j in SHIFTS]) ++ "\n" | i in DAYS];
 output["\t" ++ join(" ",[if i in {C(1),X(1)} then "1" elseif i == C(mthStartAt) then show(mthStartAt) elseif i == X(nNextMthDays) then show(nNextMthDays) else " " endif | i in DAYS]) ++ "\n"];
 output["\t" ++ join(" ",[if i in weekends then "S" else " " endif | i in DAYS]) ++ "\t" ++ join("\t",[show(i) | i in DUTIES]) ++ "\n"];
 output[show(i) ++ "\t" ++ join(" ",[show(roster[i,j]) | j in DAYS]) ++ "\t" ++ join("\t",[show(staff_duty_counts[i,j]) | j in DUTIES]) ++ "\n" | i in STAFFS];
 output["# of PAs= " ++ show(score1) ++ "\t# of NPs= " ++ show(score2) ++ "\t# of POAs= " ++ show(score3) ++ "\t# of re-duty non-fulfillments= " ++ show(score4) ++ "\n"];
-output["Total # of max shift diffs= " ++ show(score5) ++ "\n"];
+output["Total # of max shift diffs= " ++ show(score5) ++ "\tTotal # of max ward manpower diffs= " ++ show(score6) ++"\n"];
