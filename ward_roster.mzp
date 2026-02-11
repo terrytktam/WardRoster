@@ -1,15 +1,21 @@
 {
     "openFiles": [
         "ward_roster.mzn",
-        "test/production/calendar.dzn",
-        "test/production/ward_standard.dzn",
-        "test/production/request_duties.dzn"
+        "test/production/calendar_202505.dzn",
+        "test/production/ward_standard_202505.dzn",
+        "test/production/request_duties_202505.dzn"
     ],
     "openTab": 3,
     "projectFiles": [
-        "test/production/calendar.dzn",
-        "test/production/request_duties.dzn",
-        "test/production/ward_standard.dzn",
+        "test/production/calendar_fiction.dzn",
+        "test/production/request_duties_fiction.dzn",
+        "test/production/ward_standard_fiction.dzn",
+        "test/production/calendar_202505.dzn",
+        "test/production/request_duties_202505.dzn",
+        "test/production/ward_standard_202505.dzn",
+        "test/production/calendar_202506.dzn",
+        "test/production/request_duties_202506.dzn",
+        "test/production/ward_standard_202506.dzn",
         "ward_roster.mpc",
         "ward_roster.mzn"
     ],
