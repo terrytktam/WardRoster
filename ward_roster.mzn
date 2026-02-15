@@ -288,16 +288,26 @@ var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster
                   | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
 var int: score4 = length(STAFF_REQ_DUTIES) - sum([roster[i,j] == k | i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES]);
 var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not (j in special_staffs)]) | i in SHIFTS]);
-var int: score6 = sum([max_diff_manpower(col(ward_shift_manpower,i)) | i in SHIFTS]);
+var int: score6 = sum([diff_ap(staff_duty_counts[i,A],staff_duty_counts[i,P]) | i in STAFFS]);
+var int: score7 = sum([max_diff_manpower(col(ward_shift_manpower,i)) | i in SHIFTS]);
 
-solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 10 - score3 * 50 - score4 * 500 - score5 * 100 - score6 * 200;
+solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 20 - score3 * 50 - score4 * 100 - score5 * 80 - score6 * 30 - score7 * 50;
 
-% Helper function
+% Helper functions
 function WEEKDAYS: weekday(DAYS: day) = 
     let {
         int: temp = (enum2int(day) - enum2int(C(1)) + enum2int(MONTH_START)) mod 7
     } in
     if (temp == 0) then Sun else to_enum(WEEKDAYS, temp) endif;
+
+function string: format_duty(STAFFS: staff, DAYS: day) = 
+    let {
+        array[DUTIES] of bool: temp = [(staff,day,i) in STAFF_REQ_DUTIES | i in DUTIES],
+        DUTIES: duty = fix(roster[staff,day])
+    } in
+    if xorall(temp) /\ not ((staff,day,duty) in STAFF_REQ_DUTIES) then lowercase(duty) else format(duty) endif;
+
+function string: lowercase(DUTIES: duty) = if duty == N then "n" elseif duty == A then "a" elseif duty == P then "p" elseif duty == O then "o" endif;
 
 function array[int] of ReqDuties: req_duties(array[int, int] of int: input) = 
     [(to_enum(STAFFS, input[i,1]), 
@@ -308,6 +318,13 @@ function string: format_shift(set of STAFFS: staffs) =
     join("",[show(card(staffs intersect GRADE_STAFFS[grade])) | grade in GRADES]);
 
 function var int: max_diff_shifts(array[int] of var int: input) = max(input) - min(input);
+
+function var int: diff_ap(var int: a, var int: p) = 
+    let {
+        var int: temp = abs(a-p)
+    } in 
+    if (a+p) mod 2 == 1 /\ temp == 1 then 0 else temp endif;
+    
 function var int: max_diff_manpower(array[DAYS] of var int: input) = max(input) - min(input); 
 
 % Verify data input and derived parameters
@@ -319,8 +336,8 @@ output ["Index sets of MIN_WARD: "] ++ [show(index_set_1of2(MIN_WARD)) ++ "\t" +
 output ["Min staffs/APNs/RN1s/RN2s/RN3s in N/A/P: \n"] ++ [show2d(MIN_WARD)] ++ ["\n"];
 output ["Index sets of GRADE_MAXS: "] ++ [show(index_set_1of2(GRADE_MAXS)) ++ "\t" ++ show(index_set_2of2(GRADE_MAXS))] ++ ["\n"];
 output ["Max Ns/Ps/As/Offs in APN/RN1/RN2/RN3: \n"] ++ [show2d(GRADE_MAXS)] ++ ["\n"];
-output ["STAFF_REQ_DUTIES: \n"] ++ [show(STAFF_REQ_DUTIES)] ++ ["\n"];
-output ["WARD_REQ_DUTIES: \n"] ++ [show(WARD_REQ_DUTIES)] ++ ["\n"];
+output [show(length(STAFF_REQ_DUTIES)) ++ " STAFF_REQ_DUTIES: \n"] ++ [show(STAFF_REQ_DUTIES)] ++ ["\n"];
+output [show(length(WARD_REQ_DUTIES)) ++ " WARD_REQ_DUTIES: \n"] ++ [show(WARD_REQ_DUTIES)] ++ ["\n"];
 output ["special_mask of APN(1): \n"] ++ [show(row(special_mask,APN(1)))] ++ ["\n"];
 output ["special_mask of RN1(1): \n"] ++ [show(row(special_mask,RN1(1)))] ++ ["\n"];
 output ["special_mask of RN2(1): \n"] ++ [show(row(special_mask,RN2(1)))] ++ ["\n"];
@@ -329,6 +346,7 @@ output ["special_mask of RN2(1): \n"] ++ [show(row(special_mask,RN2(1)))] ++ ["\
 output[show(i) ++ "\t" ++ join("\n",[if (j != N) then "\t" endif ++ show(j) ++ " " ++ show(ward_shift_manpower[i,j]) ++ " " ++ show(ward[i,j]) | j in SHIFTS]) ++ "\n" | i in DAYS];
 output["\t" ++ join(" ",[if i in {C(1),X(1)} then "1" elseif i == C(mthStartAt) then show(mthStartAt) elseif i == X(nNextMthDays) then show(nNextMthDays) else " " endif | i in DAYS]) ++ "\n"];
 output["\t" ++ join(" ",[if i in weekends then "S" else " " endif | i in DAYS]) ++ "\t" ++ join("\t",[show(i) | i in DUTIES]) ++ "\n"];
-output[show(i) ++ "\t" ++ join(" ",[show(roster[i,j]) | j in DAYS]) ++ "\t" ++ join("\t",[show(staff_duty_counts[i,j]) | j in DUTIES]) ++ "\n" | i in STAFFS];
+output[show(i) ++ "\t" ++ join(" ",[format_duty(i,j) | j in DAYS]) ++ "\t" ++ join("\t",[show(staff_duty_counts[i,j]) | j in DUTIES]) ++ "\n" | i in STAFFS];
 output["# of PAs= " ++ show(score1) ++ "\t# of NPs= " ++ show(score2) ++ "\t# of POAs= " ++ show(score3) ++ "\t# of re-duty non-fulfillments= " ++ show(score4) ++ "\n"];
-output["Total # of max shift diffs= " ++ show(score5) ++ "\tTotal # of max ward manpower diffs= " ++ show(score6) ++"\n"];
+output["Total # of max shift diffs= " ++ show(score5) ++ "\tTotal # of A/P diffs= " ++ show(score6) ++"\n"];
+output["Total # of max ward manpower diffs= " ++ show(score7) ++"\n"];
