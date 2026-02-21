@@ -19,6 +19,7 @@ enum RULES = {WardReqDuty,            % ward request duty constraint
               };
 enum MINS = { shift, total, apn, rn1, rn2, rn3 };
 enum MAXS = { grade, night, am, pm, off };
+array[DUTIES] of string: lowercase = ["n", "a", "p", "o"];
 
 % Parameters
 int: CCYYMM;      % current month
@@ -305,9 +306,8 @@ function string: format_duty(STAFFS: staff, DAYS: day) =
         array[DUTIES] of bool: temp = [(staff,day,i) in STAFF_REQ_DUTIES | i in DUTIES],
         DUTIES: duty = fix(roster[staff,day])
     } in
-    if xorall(temp) /\ not ((staff,day,duty) in STAFF_REQ_DUTIES) then lowercase(duty) else format(duty) endif;
-
-function string: lowercase(DUTIES: duty) = if duty == N then "n" elseif duty == A then "a" elseif duty == P then "p" elseif duty == O then "o" endif;
+    if xorall(temp) /\ not ((staff,day,duty) in STAFF_REQ_DUTIES) then lowercase[duty] else format(duty) endif;
+    /*if temp[duty] then format(duty) elseif xorall(temp) then lowercase[duty] else " " endif;*/
 
 function array[int] of ReqDuties: req_duties(array[int, int] of int: input) = 
     [(to_enum(STAFFS, input[i,1]), 
