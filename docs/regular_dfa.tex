@@ -1,0 +1,205 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage{tikz}
+\usepackage[margin=1in]{geometry}
+\usetikzlibrary{automata, positioning, arrows}
+\tikzset{->,  % makes the edges directed
+>=stealth, % makes the arrow heads bold
+node distance=2cm, % specifies the minimum distance between two nodes. Change if necessary.
+initial text=$ $, % sets the text that appears on the start arrow
+}
+\begin{document}
+\section{Normal N requirement (allow first day = N)}
+\begin{tabular}{cc}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+&\tt N&	\tt A&\tt P&\tt O\\
+\hline
+$1$&$5$&$3$&$4$&$2$\\
+\hline
+$2$&$0$&$3$&$4$&$2$\\
+\hline
+$3$&$5$&$2$&$2$&$2$\\
+\hline
+$4$&$0$&$2$&$2$&$2$\\
+\hline
+$5$&$0$&$0$&$6$&$2$\\
+\hline
+$6$&$0$&$7$&$7$&$2$\\
+\hline
+$7$&$0$&$0$&$0$&$2$\\
+\hline
+\end{tabular}
+&
+\begin{tikzpicture}
+  \node[state, initial] (q1) {$1$};  
+  \node[state, right of=q1] (q2) {$2$};
+  \node[state, above right of=q2] (q3) {$3$};
+  \node[state, below right of=q2] (q4) {$4$};
+  \node[state, right of=q3] (q5) {$5$};
+  \node[state, right of=q5] (q6) {$6$};
+  \node[state, right of=q6] (q7) {$7$};
+  
+  \draw (q1) edge[above] node{\tt O} (q2)
+  		(q1) edge[bend left=30, below] node{\tt A} (q3)
+		(q1) edge[bend right=30, below] node{\tt P} (q4)
+		(q1) edge[bend left=45, above] node{\tt N} (q5)
+  		(q2) edge[loop above] node{\tt O} (q2)
+  		(q2) edge[above] node{\tt A} (q3)
+  		(q2) edge[above] node{\tt P} (q4)
+  		(q3) edge[above] node{\tt N} (q5)
+  		(q3) edge[bend left, right] node{\tt A,P,O} (q2)
+  		(q4) edge[bend left, left] node{\tt A,P,O} (q2)
+  		(q5) edge[bend left, right] node{\tt O} (q2)
+  		(q5) edge[above] node{\tt P} (q6)
+  		(q6) edge[above] node{\tt A,P} (q7)
+  		(q6) edge[bend left, right] node{\tt O} (q2)
+  		(q7) edge[bend left, right] node{\tt O} (q2);
+
+\end{tikzpicture}\\
+\end{tabular}
+\section{At most 1 N for consecutive CN days}
+\begin{tabular}{cc}
+$CN = 6$\\
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+&\tt N&\tt A&\tt P&\tt O\\
+\hline
+$1$&$2$&$1$&$1$&$1$\\
+\hline
+$2$&$0$&$3$&$3$&$3$\\
+\hline
+$3$&$0$&$4$&$4$&$4$\\
+\hline
+$4$&$0$&$5$&$5$&$5$\\
+\hline
+$5$&$0$&$6$&$6$&$6$\\
+\hline
+$6$&$0$&$1$&$1$&$1$\\
+\hline
+\end{tabular}
+&
+\begin{tikzpicture}
+  \node[state, initial] (q1) {$1$};
+  \node[state, right of=q1] (q2) {$2$};
+  \node[state, right of=q2] (q3) {$3$};
+  \node[state, right of=q3] (q4) {$4$};
+  \node[state, right of=q4] (q5) {$5$};
+  \node[state, right of=q5] (q6) {$6$};
+  
+  \draw (q1) edge[loop below] node{\tt A,P,O} (q1)
+  		(q1) edge[above] node{\tt N} (q2)
+  		(q2) edge[above] node{\tt A,P,O} (q3)
+  		(q3) edge[above] node{\tt A,P,O} (q4)
+  		(q4) edge[above] node{\tt A,P,O} (q5)
+  		(q5) edge[above] node{\tt A,P,O} (q6)
+  		(q6) edge[bend left, above] node{\tt A,P,O} (q1);
+
+\end{tikzpicture}\\
+\end{tabular}
+\section{No consecutive 3A or 3P in a row and NPA/NPP sequence}
+\begin{tabular}{cc}
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+&\tt N&\tt A&\tt P&\tt O\\
+\hline
+$1$&$4$&$2$&$3$&$1$\\
+\hline
+$2$&$4$&$5$&$3$&$1$\\
+\hline
+$3$&$4$&$2$&$6$&$1$\\
+\hline
+$4$&$4$&$2$&$7$&$1$\\
+\hline
+$5$&$4$&$0$&$3$&$1$\\
+\hline
+$6$&$4$&$2$&$0$&$1$\\
+\hline
+$7$&$4$&$0$&$0$&$1$\\
+\hline
+\end{tabular}
+&
+\begin{tikzpicture}
+  \node[state, initial] (q1) {$1$};
+  \node[state, above right of=q1, xshift=1cm, yshift=0.5cm] (q2) {$2$};
+  \node[state, right of=q1, xshift=0.5cm] (q3) {$3$};
+  \node[state, below right of=q1, xshift=1cm, yshift=-0.5cm] (q4) {$4$};
+  \node[state, right of=q2, xshift=0.5cm] (q5) {$5$};
+  \node[state, right of=q3, xshift=0.5cm] (q6) {$6$};
+  \node[state, right of=q4, xshift=0.5cm] (q7) {$7$};
+  
+  \draw (q1) edge[loop above, left] node{\tt O} (q1)
+  		(q1) edge[above] node{\tt A} (q2)
+  		(q1) edge[above] node{\tt P} (q3)
+  		(q1) edge[below] node{\tt N} (q4)
+  		(q2) edge[above] node{\tt A} (q5)
+  		(q2) edge[bend right] node{\tt P} (q3)
+  		(q2) edge[bend right] node{\tt O} (q1)
+  		(q2) edge[bend right=30] node{\tt N} (q4)
+  		(q3) edge[above] node{\tt P} (q6)
+  		(q3) edge[bend right] node{\tt A} (q2)
+  		(q3) edge[bend left] node{\tt O} (q1)
+  		(q3) edge[bend left] node{\tt N} (q4)
+  		(q4) edge[bend left, below] node{\tt O} (q1)
+  		(q4) edge[bend right=45] node{\tt A} (q2)
+  		(q4) edge[loop below, below] node{\tt N} (q4)
+  		(q4) edge[above] node{\tt P} (q7)
+  		(q5) edge[bend right=75, left] node{\tt O} (q1)
+  		(q5) edge[left] node{\tt P} (q3)
+  		(q5) edge[bend left=120] node{\tt N} (q4)
+  		(q6) edge[bend left=30, left] node{\tt O} (q1)
+  		(q6) edge[right] node{\tt A} (q2)
+  		(q6) edge[right] node{\tt N} (q4)
+  		(q7) edge[bend left] node{\tt N} (q4)
+  		(q7) edge[bend left=75] node{\tt O} (q1);
+
+\end{tikzpicture}\\
+\end{tabular}
+\section{At least 1 O for consecutive NW days}
+\begin{tabular}{cc}
+$NW = 7$\\
+\begin{tabular}{|c|c|c|c|c|}
+\hline
+&\tt N&\tt A&\tt P&\tt O\\
+\hline
+$1$&$2$&$2$&$2$&$1$\\
+\hline
+$2$&$3$&$3$&$3$&$1$\\
+\hline
+$3$&$4$&$4$&$4$&$1$\\
+\hline
+$4$&$5$&$5$&$5$&$1$\\
+\hline
+$5$&$6$&$6$&$6$&$1$\\
+\hline
+$6$&$7$&$7$&$7$&$1$\\
+\hline
+$7$&$0$&$0$&$0$&$1$\\
+\hline
+\end{tabular}
+&
+\begin{tikzpicture}
+  \node[state, initial] (q1) {$1$};
+  \node[state, right of=q1] (q2) {$2$};
+  \node[state, right of=q2] (q3) {$3$};
+  \node[state, right of=q3] (q4) {$4$};
+  \node[state, right of=q4] (q5) {$5$};
+  \node[state, right of=q5] (q6) {$6$};
+  \node[state, below of=q6] (q7) {$7$};
+  
+  \draw (q1) edge[loop below] node{\tt O} (q1)
+  		(q1) edge[above] node{\tt A,P,N} (q2)
+  		(q2) edge[above] node{\tt A,P,N} (q3)
+  		(q3) edge[above] node{\tt A,P,N} (q4)
+  		(q4) edge[above] node{\tt A,P,N} (q5)
+  		(q5) edge[above] node{\tt A,P,N} (q6)
+  		(q6) edge[left] node{\tt A,P,N} (q7)
+  		(q2) edge[bend left, above] node{\tt O} (q1)
+  		(q3) edge[bend left, above] node{\tt O} (q1)
+  		(q4) edge[bend left, above] node{\tt O} (q1)
+  		(q5) edge[bend left, above] node{\tt O} (q1)
+  		(q6) edge[bend left, above] node{\tt O} (q1)
+  		(q7) edge[bend left, above] node{\tt O} (q1);
+
+\end{tikzpicture}\\
+\end{tabular}
+\end{document}
