@@ -343,10 +343,10 @@ output ["special_mask of RN1(1): \n"] ++ [show(row(special_mask,RN1(1)))] ++ ["\
 output ["special_mask of RN2(1): \n"] ++ [show(row(special_mask,RN2(1)))] ++ ["\n"];
 
 % Result printing
-output[show(i) ++ "\t" ++ join("\n",[if (j != N) then "\t" endif ++ show(j) ++ " " ++ show(ward_shift_manpower[i,j]) ++ " " ++ show(ward[i,j]) | j in SHIFTS]) ++ "\n" | i in DAYS];
+output[show(i) ++ "\t" ++ join("\n",[if (j != N) then "\t" endif ++ show(j) ++ " " ++ show(fix(ward_shift_manpower[i,j])) ++ " " ++ show(fix(ward[i,j])) | j in SHIFTS]) ++ "\n" | i in DAYS];
 output["\t" ++ join(" ",[if i in {C(1),X(1)} then "1" elseif i == C(mthStartAt) then show(mthStartAt) elseif i == X(nNextMthDays) then show(nNextMthDays) else " " endif | i in DAYS]) ++ "\n"];
 output["\t" ++ join(" ",[if i in weekends then "S" else " " endif | i in DAYS]) ++ "\t" ++ join("\t",[show(i) | i in DUTIES]) ++ "\n"];
-output[show(i) ++ "\t" ++ join(" ",[format_duty(i,j) | j in DAYS]) ++ "\t" ++ join("\t",[show(staff_duty_counts[i,j]) | j in DUTIES]) ++ "\n" | i in STAFFS];
-output["# of PAs= " ++ show(score1) ++ "\t# of NPs= " ++ show(score2) ++ "\t# of POAs= " ++ show(score3) ++ "\t# of re-duty non-fulfillments= " ++ show(score4) ++ "\n"];
-output["Total # of max shift diffs= " ++ show(score5) ++ "\tTotal # of A/P diffs= " ++ show(score6) ++"\n"];
-output["Total # of max ward manpower diffs= " ++ show(score7) ++"\n"];
+output[show(i) ++ "\t" ++ join(" ",[format_duty(i,j) | j in DAYS]) ++ "\t" ++ join("\t",[show(fix(staff_duty_counts[i,j])) | j in DUTIES]) ++ "\n" | i in STAFFS];
+output["# of PAs= " ++ show(fix(score1)) ++ "\t# of NPs= " ++ show(fix(score2)) ++ "\t# of POAs= " ++ show(fix(score3)) ++ "\t# of re-duty non-fulfillments= " ++ show(fix(score4)) ++ "\n"];
+output["Total # of max shift diffs= " ++ show(fix(score5)) ++ "\tTotal # of A/P diffs= " ++ show(fix(score6)) ++"\n"];
+output["Total # of max ward manpower diffs= " ++ show(fix(score7)) ++"\n"];
