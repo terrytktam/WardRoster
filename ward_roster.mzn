@@ -299,7 +299,7 @@ function WEEKDAYS: weekday(DAYS: day) =
     let {
         int: temp = (enum2int(day) - enum2int(C(1)) + enum2int(MONTH_START)) mod 7
     } in
-    if (temp == 0) then Sun else to_enum(WEEKDAYS, temp) endif;
+    to_enum(WEEKDAYS, if temp <= 0 then temp + 7 else temp endif);
 
 function string: format_duty(STAFFS: staff, DAYS: day) = 
     let {
