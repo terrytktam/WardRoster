@@ -283,14 +283,13 @@ predicate rules12 = (forall(i in STAFFS) (
 ));
 
 % Objective functions
-var int: score1 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == A | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);
-var int: score2 = sum([roster[i,j] == N /\ roster[i,enum_next(j)] == P | i in STAFFS, j in DAYS where enum_next(j) in DAYS]);
-var int: score3 = sum([roster[i,j] == P /\ roster[i,enum_next(j)] == O /\ roster[i,enum_next(enum_next(j))] == A 
-                  | i in STAFFS, j in DAYS where enum_next(j) in DAYS /\ enum_next(enum_next(j)) in DAYS]);
-var int: score4 = length(STAFF_REQ_DUTIES) - sum([roster[i,j] == k | i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES]);
+var int: score1 = sum(i in STAFFS) (count_subseq(row(roster,i), [P, A]));
+var int: score2 = sum(i in STAFFS) (count_subseq(row(roster,i), [N, P]));
+var int: score3 = sum(i in STAFFS) (count_subseq(row(roster,i), [P, O, A]));
+var int: score4 = length(STAFF_REQ_DUTIES) - sum(i in STAFFS, j in DAYS, k in DUTIES where (i,j,k) in STAFF_REQ_DUTIES) (roster[i,j] == k);
 var int: score5 = sum([max_diff_shifts([col(staff_duty_counts,i)[j] | j in STAFFS where not (j in special_staffs)]) | i in SHIFTS]);
-var int: score6 = sum([diff_ap(staff_duty_counts[i,A],staff_duty_counts[i,P]) | i in STAFFS]);
-var int: score7 = sum([max_diff_manpower(col(ward_shift_manpower,i)) | i in SHIFTS]);
+var int: score6 = sum(i in STAFFS) (diff_ap(staff_duty_counts[i,A],staff_duty_counts[i,P]));
+var int: score7 = sum(i in SHIFTS) (max_diff_manpower(col(ward_shift_manpower,i)));
 
 solve :: int_search(roster, first_fail, indomain_min) maximize score1 - score2 * 20 - score3 * 50 - score4 * 100 - score5 * 80 - score6 * 30 - score7 * 50;
 
@@ -326,6 +325,11 @@ function var int: diff_ap(var int: a, var int: p) =
     if (a+p) mod 2 == 1 /\ temp == 1 then 0 else temp endif;
     
 function var int: max_diff_manpower(array[DAYS] of var int: input) = max(input) - min(input); 
+
+function var int: count_subseq(array[int] of var DUTIES: main, array[int] of DUTIES: pat) =
+    let { int: m = length(main),
+          int: n = length(pat)
+    } in if n > m then 0 else sum(i in 1..m-n+1) (forall(j in 1..n)(main[i+j-1] == pat[j])) endif;
 
 % Verify data input and derived parameters
 output ["Whole calendar: "] ++ [show(i) ++ " " | i in DAYS] ++ ["\n"];
